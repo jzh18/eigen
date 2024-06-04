@@ -61,14 +61,14 @@ class DenseCoeffsBase<Derived, ReadOnlyAccessors> : public EigenBase<Derived> {
   using Base::rows;
   using Base::size;
 
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Index rowIndexByOuterInner(Index outer, Index inner) const {
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr Index rowIndexByOuterInner(Index outer, Index inner) const {
     return int(Derived::RowsAtCompileTime) == 1   ? 0
            : int(Derived::ColsAtCompileTime) == 1 ? inner
            : int(Derived::Flags) & RowMajorBit    ? outer
                                                   : inner;
   }
 
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Index colIndexByOuterInner(Index outer, Index inner) const {
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr Index colIndexByOuterInner(Index outer, Index inner) const {
     return int(Derived::ColsAtCompileTime) == 1   ? 0
            : int(Derived::RowsAtCompileTime) == 1 ? inner
            : int(Derived::Flags) & RowMajorBit    ? inner
@@ -89,13 +89,12 @@ class DenseCoeffsBase<Derived, ReadOnlyAccessors> : public EigenBase<Derived> {
    *
    * \sa operator()(Index,Index) const, coeffRef(Index,Index), coeff(Index) const
    */
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE EIGEN_CONSTEXPR CoeffReturnType coeff(Index row, Index col) const {
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr CoeffReturnType coeff(Index row, Index col) const {
     eigen_internal_assert(row >= 0 && row < rows() && col >= 0 && col < cols());
     return internal::evaluator<Derived>(derived()).coeff(row, col);
   }
 
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE EIGEN_CONSTEXPR CoeffReturnType coeffByOuterInner(Index outer,
-                                                                                          Index inner) const {
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr CoeffReturnType coeffByOuterInner(Index outer, Index inner) const {
     return coeff(rowIndexByOuterInner(outer, inner), colIndexByOuterInner(outer, inner));
   }
 
@@ -103,7 +102,7 @@ class DenseCoeffsBase<Derived, ReadOnlyAccessors> : public EigenBase<Derived> {
    *
    * \sa operator()(Index,Index), operator[](Index)
    */
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE EIGEN_CONSTEXPR CoeffReturnType operator()(Index row, Index col) const {
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr CoeffReturnType operator()(Index row, Index col) const {
     eigen_assert(row >= 0 && row < rows() && col >= 0 && col < cols());
     return coeff(row, col);
   }
@@ -123,7 +122,7 @@ class DenseCoeffsBase<Derived, ReadOnlyAccessors> : public EigenBase<Derived> {
    * \sa operator[](Index) const, coeffRef(Index), coeff(Index,Index) const
    */
 
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE EIGEN_CONSTEXPR CoeffReturnType coeff(Index index) const {
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr CoeffReturnType coeff(Index index) const {
     EIGEN_STATIC_ASSERT(internal::evaluator<Derived>::Flags & LinearAccessBit,
                         THIS_COEFFICIENT_ACCESSOR_TAKING_ONE_ACCESS_IS_ONLY_FOR_EXPRESSIONS_ALLOWING_LINEAR_ACCESS)
     eigen_internal_assert(index >= 0 && index < size());
@@ -138,7 +137,7 @@ class DenseCoeffsBase<Derived, ReadOnlyAccessors> : public EigenBase<Derived> {
    * z() const, w() const
    */
 
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE EIGEN_CONSTEXPR CoeffReturnType operator[](Index index) const {
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr CoeffReturnType operator[](Index index) const {
     EIGEN_STATIC_ASSERT(Derived::IsVectorAtCompileTime,
                         THE_BRACKET_OPERATOR_IS_ONLY_FOR_VECTORS__USE_THE_PARENTHESIS_OPERATOR_INSTEAD)
     eigen_assert(index >= 0 && index < size());
@@ -155,32 +154,32 @@ class DenseCoeffsBase<Derived, ReadOnlyAccessors> : public EigenBase<Derived> {
    * z() const, w() const
    */
 
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE EIGEN_CONSTEXPR CoeffReturnType operator()(Index index) const {
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr CoeffReturnType operator()(Index index) const {
     eigen_assert(index >= 0 && index < size());
     return coeff(index);
   }
 
   /** equivalent to operator[](0).  */
 
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE EIGEN_CONSTEXPR CoeffReturnType x() const { return (*this)[0]; }
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr CoeffReturnType x() const { return (*this)[0]; }
 
   /** equivalent to operator[](1).  */
 
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE EIGEN_CONSTEXPR CoeffReturnType y() const {
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr CoeffReturnType y() const {
     EIGEN_STATIC_ASSERT(Derived::SizeAtCompileTime == -1 || Derived::SizeAtCompileTime >= 2, OUT_OF_RANGE_ACCESS);
     return (*this)[1];
   }
 
   /** equivalent to operator[](2).  */
 
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE EIGEN_CONSTEXPR CoeffReturnType z() const {
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr CoeffReturnType z() const {
     EIGEN_STATIC_ASSERT(Derived::SizeAtCompileTime == -1 || Derived::SizeAtCompileTime >= 3, OUT_OF_RANGE_ACCESS);
     return (*this)[2];
   }
 
   /** equivalent to operator[](3).  */
 
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE EIGEN_CONSTEXPR CoeffReturnType w() const {
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr CoeffReturnType w() const {
     EIGEN_STATIC_ASSERT(Derived::SizeAtCompileTime == -1 || Derived::SizeAtCompileTime >= 4, OUT_OF_RANGE_ACCESS);
     return (*this)[3];
   }
@@ -196,7 +195,7 @@ class DenseCoeffsBase<Derived, ReadOnlyAccessors> : public EigenBase<Derived> {
    */
 
   template <int LoadMode>
-  EIGEN_STRONG_INLINE PacketReturnType packet(Index row, Index col) const {
+  EIGEN_STRONG_INLINE constexpr PacketReturnType packet(Index row, Index col) const {
     typedef typename internal::packet_traits<Scalar>::type DefaultPacketType;
     eigen_internal_assert(row >= 0 && row < rows() && col >= 0 && col < cols());
     return internal::evaluator<Derived>(derived()).template packet<LoadMode, DefaultPacketType>(row, col);
@@ -204,7 +203,7 @@ class DenseCoeffsBase<Derived, ReadOnlyAccessors> : public EigenBase<Derived> {
 
   /** \internal */
   template <int LoadMode>
-  EIGEN_STRONG_INLINE PacketReturnType packetByOuterInner(Index outer, Index inner) const {
+  EIGEN_STRONG_INLINE constexpr PacketReturnType packetByOuterInner(Index outer, Index inner) const {
     return packet<LoadMode>(rowIndexByOuterInner(outer, inner), colIndexByOuterInner(outer, inner));
   }
 
@@ -219,7 +218,7 @@ class DenseCoeffsBase<Derived, ReadOnlyAccessors> : public EigenBase<Derived> {
    */
 
   template <int LoadMode>
-  EIGEN_STRONG_INLINE PacketReturnType packet(Index index) const {
+  EIGEN_STRONG_INLINE constexpr PacketReturnType packet(Index index) const {
     EIGEN_STATIC_ASSERT(internal::evaluator<Derived>::Flags & LinearAccessBit,
                         THIS_COEFFICIENT_ACCESSOR_TAKING_ONE_ACCESS_IS_ONLY_FOR_EXPRESSIONS_ALLOWING_LINEAR_ACCESS)
     typedef typename internal::packet_traits<Scalar>::type DefaultPacketType;
@@ -233,19 +232,19 @@ class DenseCoeffsBase<Derived, ReadOnlyAccessors> : public EigenBase<Derived> {
   // So we add dummy methods here with these names, so that "using... " doesn't fail.
   // It's not private so that the child class DenseBase can access them, and it's not public
   // either since it's an implementation detail, so has to be protected.
-  void coeffRef();
-  void coeffRefByOuterInner();
-  void writePacket();
-  void writePacketByOuterInner();
-  void copyCoeff();
-  void copyCoeffByOuterInner();
-  void copyPacket();
-  void copyPacketByOuterInner();
-  void stride();
-  void innerStride();
-  void outerStride();
-  void rowStride();
-  void colStride();
+  constexpr void coeffRef();
+  constexpr void coeffRefByOuterInner();
+  constexpr void writePacket();
+  constexpr void writePacketByOuterInner();
+  constexpr void copyCoeff();
+  constexpr void copyCoeffByOuterInner();
+  constexpr void copyPacket();
+  constexpr void copyPacketByOuterInner();
+  constexpr void stride();
+  constexpr void innerStride();
+  constexpr void outerStride();
+  constexpr void rowStride();
+  constexpr void colStride();
 };
 
 /** \brief Base class providing read/write coefficient access to matrices and arrays.
@@ -298,12 +297,12 @@ class DenseCoeffsBase<Derived, WriteAccessors> : public DenseCoeffsBase<Derived,
    *
    * \sa operator()(Index,Index), coeff(Index, Index) const, coeffRef(Index)
    */
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Scalar& coeffRef(Index row, Index col) {
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr Scalar& coeffRef(Index row, Index col) {
     eigen_internal_assert(row >= 0 && row < rows() && col >= 0 && col < cols());
     return internal::evaluator<Derived>(derived()).coeffRef(row, col);
   }
 
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Scalar& coeffRefByOuterInner(Index outer, Index inner) {
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr Scalar& coeffRefByOuterInner(Index outer, Index inner) {
     return coeffRef(rowIndexByOuterInner(outer, inner), colIndexByOuterInner(outer, inner));
   }
 
@@ -312,7 +311,7 @@ class DenseCoeffsBase<Derived, WriteAccessors> : public DenseCoeffsBase<Derived,
    * \sa operator[](Index)
    */
 
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Scalar& operator()(Index row, Index col) {
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr Scalar& operator()(Index row, Index col) {
     eigen_assert(row >= 0 && row < rows() && col >= 0 && col < cols());
     return coeffRef(row, col);
   }
@@ -332,7 +331,7 @@ class DenseCoeffsBase<Derived, WriteAccessors> : public DenseCoeffsBase<Derived,
    * \sa operator[](Index), coeff(Index) const, coeffRef(Index,Index)
    */
 
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Scalar& coeffRef(Index index) {
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr Scalar& coeffRef(Index index) {
     EIGEN_STATIC_ASSERT(internal::evaluator<Derived>::Flags & LinearAccessBit,
                         THIS_COEFFICIENT_ACCESSOR_TAKING_ONE_ACCESS_IS_ONLY_FOR_EXPRESSIONS_ALLOWING_LINEAR_ACCESS)
     eigen_internal_assert(index >= 0 && index < size());
@@ -346,7 +345,7 @@ class DenseCoeffsBase<Derived, WriteAccessors> : public DenseCoeffsBase<Derived,
    * \sa operator[](Index) const, operator()(Index,Index), x(), y(), z(), w()
    */
 
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Scalar& operator[](Index index) {
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr Scalar& operator[](Index index) {
     EIGEN_STATIC_ASSERT(Derived::IsVectorAtCompileTime,
                         THE_BRACKET_OPERATOR_IS_ONLY_FOR_VECTORS__USE_THE_PARENTHESIS_OPERATOR_INSTEAD)
     eigen_assert(index >= 0 && index < size());
@@ -362,32 +361,32 @@ class DenseCoeffsBase<Derived, WriteAccessors> : public DenseCoeffsBase<Derived,
    * \sa operator[](Index) const, operator()(Index,Index), x(), y(), z(), w()
    */
 
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE EIGEN_CONSTEXPR Scalar& operator()(Index index) {
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr Scalar& operator()(Index index) {
     eigen_assert(index >= 0 && index < size());
     return coeffRef(index);
   }
 
   /** equivalent to operator[](0).  */
 
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE EIGEN_CONSTEXPR Scalar& x() { return (*this)[0]; }
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr Scalar& x() { return (*this)[0]; }
 
   /** equivalent to operator[](1).  */
 
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE EIGEN_CONSTEXPR Scalar& y() {
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr Scalar& y() {
     EIGEN_STATIC_ASSERT(Derived::SizeAtCompileTime == -1 || Derived::SizeAtCompileTime >= 2, OUT_OF_RANGE_ACCESS);
     return (*this)[1];
   }
 
   /** equivalent to operator[](2).  */
 
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE EIGEN_CONSTEXPR Scalar& z() {
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr Scalar& z() {
     EIGEN_STATIC_ASSERT(Derived::SizeAtCompileTime == -1 || Derived::SizeAtCompileTime >= 3, OUT_OF_RANGE_ACCESS);
     return (*this)[2];
   }
 
   /** equivalent to operator[](3).  */
 
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE EIGEN_CONSTEXPR Scalar& w() {
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr Scalar& w() {
     EIGEN_STATIC_ASSERT(Derived::SizeAtCompileTime == -1 || Derived::SizeAtCompileTime >= 4, OUT_OF_RANGE_ACCESS);
     return (*this)[3];
   }
@@ -421,23 +420,23 @@ class DenseCoeffsBase<Derived, DirectAccessors> : public DenseCoeffsBase<Derived
    *
    * \sa outerStride(), rowStride(), colStride()
    */
-  EIGEN_DEVICE_FUNC EIGEN_CONSTEXPR inline Index innerStride() const { return derived().innerStride(); }
+  EIGEN_DEVICE_FUNC inline constexpr Index innerStride() const { return derived().innerStride(); }
 
   /** \returns the pointer increment between two consecutive inner slices (for example, between two consecutive columns
    *          in a column-major matrix).
    *
    * \sa innerStride(), rowStride(), colStride()
    */
-  EIGEN_DEVICE_FUNC EIGEN_CONSTEXPR inline Index outerStride() const { return derived().outerStride(); }
+  EIGEN_DEVICE_FUNC inline constexpr Index outerStride() const { return derived().outerStride(); }
 
   // FIXME shall we remove it ?
-  EIGEN_CONSTEXPR inline Index stride() const { return Derived::IsVectorAtCompileTime ? innerStride() : outerStride(); }
+  inline constexpr Index stride() const { return Derived::IsVectorAtCompileTime ? innerStride() : outerStride(); }
 
   /** \returns the pointer increment between two consecutive rows.
    *
    * \sa innerStride(), outerStride(), colStride()
    */
-  EIGEN_DEVICE_FUNC EIGEN_CONSTEXPR inline Index rowStride() const {
+  EIGEN_DEVICE_FUNC inline constexpr Index rowStride() const {
     return Derived::IsRowMajor ? outerStride() : innerStride();
   }
 
@@ -445,7 +444,7 @@ class DenseCoeffsBase<Derived, DirectAccessors> : public DenseCoeffsBase<Derived
    *
    * \sa innerStride(), outerStride(), rowStride()
    */
-  EIGEN_DEVICE_FUNC EIGEN_CONSTEXPR inline Index colStride() const {
+  EIGEN_DEVICE_FUNC inline constexpr Index colStride() const {
     return Derived::IsRowMajor ? innerStride() : outerStride();
   }
 };
@@ -478,17 +477,17 @@ class DenseCoeffsBase<Derived, DirectWriteAccessors> : public DenseCoeffsBase<De
    *
    * \sa outerStride(), rowStride(), colStride()
    */
-  EIGEN_DEVICE_FUNC EIGEN_CONSTEXPR inline Index innerStride() const EIGEN_NOEXCEPT { return derived().innerStride(); }
+  EIGEN_DEVICE_FUNC inline constexpr Index innerStride() const EIGEN_NOEXCEPT { return derived().innerStride(); }
 
   /** \returns the pointer increment between two consecutive inner slices (for example, between two consecutive columns
    *          in a column-major matrix).
    *
    * \sa innerStride(), rowStride(), colStride()
    */
-  EIGEN_DEVICE_FUNC EIGEN_CONSTEXPR inline Index outerStride() const EIGEN_NOEXCEPT { return derived().outerStride(); }
+  EIGEN_DEVICE_FUNC inline constexpr Index outerStride() const EIGEN_NOEXCEPT { return derived().outerStride(); }
 
   // FIXME shall we remove it ?
-  EIGEN_CONSTEXPR inline Index stride() const EIGEN_NOEXCEPT {
+  inline constexpr Index stride() const EIGEN_NOEXCEPT {
     return Derived::IsVectorAtCompileTime ? innerStride() : outerStride();
   }
 
@@ -496,7 +495,7 @@ class DenseCoeffsBase<Derived, DirectWriteAccessors> : public DenseCoeffsBase<De
    *
    * \sa innerStride(), outerStride(), colStride()
    */
-  EIGEN_DEVICE_FUNC EIGEN_CONSTEXPR inline Index rowStride() const EIGEN_NOEXCEPT {
+  EIGEN_DEVICE_FUNC inline constexpr Index rowStride() const EIGEN_NOEXCEPT {
     return Derived::IsRowMajor ? outerStride() : innerStride();
   }
 
@@ -504,7 +503,7 @@ class DenseCoeffsBase<Derived, DirectWriteAccessors> : public DenseCoeffsBase<De
    *
    * \sa innerStride(), outerStride(), rowStride()
    */
-  EIGEN_DEVICE_FUNC EIGEN_CONSTEXPR inline Index colStride() const EIGEN_NOEXCEPT {
+  EIGEN_DEVICE_FUNC inline constexpr Index colStride() const EIGEN_NOEXCEPT {
     return Derived::IsRowMajor ? innerStride() : outerStride();
   }
 };
@@ -513,12 +512,12 @@ namespace internal {
 
 template <int Alignment, typename Derived, bool JustReturnZero>
 struct first_aligned_impl {
-  static EIGEN_CONSTEXPR inline Index run(const Derived&) EIGEN_NOEXCEPT { return 0; }
+  static inline constexpr Index run(const Derived&) EIGEN_NOEXCEPT { return 0; }
 };
 
 template <int Alignment, typename Derived>
 struct first_aligned_impl<Alignment, Derived, false> {
-  static inline Index run(const Derived& m) { return internal::first_aligned<Alignment>(m.data(), m.size()); }
+  static inline constexpr Index run(const Derived& m) { return internal::first_aligned<Alignment>(m.data(), m.size()); }
 };
 
 /** \internal \returns the index of the first element of the array stored by \a m that is properly aligned with respect
@@ -530,13 +529,13 @@ struct first_aligned_impl<Alignment, Derived, false> {
  * documentation.
  */
 template <int Alignment, typename Derived>
-static inline Index first_aligned(const DenseBase<Derived>& m) {
+static inline constexpr Index first_aligned(const DenseBase<Derived>& m) {
   enum { ReturnZero = (int(evaluator<Derived>::Alignment) >= Alignment) || !(Derived::Flags & DirectAccessBit) };
   return first_aligned_impl<Alignment, Derived, ReturnZero>::run(m.derived());
 }
 
 template <typename Derived>
-static inline Index first_default_aligned(const DenseBase<Derived>& m) {
+static inline constexpr Index first_default_aligned(const DenseBase<Derived>& m) {
   typedef typename Derived::Scalar Scalar;
   typedef typename packet_traits<Scalar>::type DefaultPacketType;
   return internal::first_aligned<int(unpacket_traits<DefaultPacketType>::alignment), Derived>(m);

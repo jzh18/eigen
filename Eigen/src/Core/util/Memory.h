@@ -88,28 +88,32 @@ namespace internal {
 *****************************************************************************/
 
 #ifdef EIGEN_NO_MALLOC
-EIGEN_DEVICE_FUNC inline void check_that_malloc_is_allowed() {
+EIGEN_DEVICE_FUNC inline constexpr void check_that_malloc_is_allowed() {
   eigen_assert(false && "heap allocation is forbidden (EIGEN_NO_MALLOC is defined)");
 }
 #elif defined EIGEN_RUNTIME_NO_MALLOC
-EIGEN_DEVICE_FUNC inline bool is_malloc_allowed_impl(bool update, bool new_value = false) {
+EIGEN_DEVICE_FUNC inline constexpr bool is_malloc_allowed_impl(bool update, bool new_value = false) {
   EIGEN_MALLOC_CHECK_THREAD_LOCAL static bool value = true;
   if (update == 1) value = new_value;
   return value;
 }
-EIGEN_DEVICE_FUNC inline bool is_malloc_allowed() { return is_malloc_allowed_impl(false); }
-EIGEN_DEVICE_FUNC inline bool set_is_malloc_allowed(bool new_value) { return is_malloc_allowed_impl(true, new_value); }
-EIGEN_DEVICE_FUNC inline void check_that_malloc_is_allowed() {
+EIGEN_DEVICE_FUNC inline constexpr bool is_malloc_allowed() { return is_malloc_allowed_impl(false); }
+EIGEN_DEVICE_FUNC inline constexpr bool set_is_malloc_allowed(bool new_value) {
+  return is_malloc_allowed_impl(true, new_value);
+}
+EIGEN_DEVICE_FUNC inline constexpr void check_that_malloc_is_allowed() {
   eigen_assert(is_malloc_allowed() &&
                "heap allocation is forbidden (EIGEN_RUNTIME_NO_MALLOC is defined and g_is_malloc_allowed is false)");
 }
 #else
-EIGEN_DEVICE_FUNC inline void check_that_malloc_is_allowed() {}
+EIGEN_DEVICE_FUNC inline constexpr void check_that_malloc_is_allowed() {}
 #endif
 
-EIGEN_DEVICE_FUNC inline void throw_std_bad_alloc() {
+EIGEN_DEVICE_FUNC inline constexpr void throw_std_bad_alloc() {
 #ifdef EIGEN_EXCEPTIONS
-  throw std::bad_alloc();
+  if (!internal::is_constant_evaluated()) {
+    throw std::bad_alloc();
+  }
 #else
   std::size_t huge = static_cast<std::size_t>(-1);
 #if defined(EIGEN_HIPCC)
@@ -139,8 +143,8 @@ EIGEN_DEVICE_FUNC inline void throw_std_bad_alloc() {
 /** \internal Like malloc, but the returned pointer is guaranteed to be aligned to `alignment`.
  * Fast, but wastes `alignment` additional bytes of memory. Does not throw any exception.
  */
-EIGEN_DEVICE_FUNC inline void* handmade_aligned_malloc(std::size_t size,
-                                                       std::size_t alignment = EIGEN_DEFAULT_ALIGN_BYTES) {
+EIGEN_DEVICE_FUNC inline constexpr void* handmade_aligned_malloc(std::size_t size,
+                                                                 std::size_t alignment = EIGEN_DEFAULT_ALIGN_BYTES) {
   eigen_assert(alignment >= sizeof(void*) && alignment <= 128 && (alignment & (alignment - 1)) == 0 &&
                "Alignment must be at least sizeof(void*), less than or equal to 128, and a power of 2");
 
@@ -155,7 +159,7 @@ EIGEN_DEVICE_FUNC inline void* handmade_aligned_malloc(std::size_t size,
 }
 
 /** \internal Frees memory allocated with handmade_aligned_malloc */
-EIGEN_DEVICE_FUNC inline void handmade_aligned_free(void* ptr) {
+EIGEN_DEVICE_FUNC inline constexpr void handmade_aligned_free(void* ptr) {
   if (ptr != nullptr) {
     uint8_t offset = static_cast<uint8_t>(*(static_cast<uint8_t*>(ptr) - 1));
     void* original = static_cast<void*>(static_cast<uint8_t*>(ptr) - offset);
@@ -171,8 +175,8 @@ EIGEN_DEVICE_FUNC inline void handmade_aligned_free(void* ptr) {
  * Since we know that our handmade version is based on std::malloc
  * we can use std::realloc to implement efficient reallocation.
  */
-EIGEN_DEVICE_FUNC inline void* handmade_aligned_realloc(void* ptr, std::size_t new_size, std::size_t old_size,
-                                                        std::size_t alignment = EIGEN_DEFAULT_ALIGN_BYTES) {
+EIGEN_DEVICE_FUNC inline constexpr void* handmade_aligned_realloc(void* ptr, std::size_t new_size, std::size_t old_size,
+                                                                  std::size_t alignment = EIGEN_DEFAULT_ALIGN_BYTES) {
   if (ptr == nullptr) return handmade_aligned_malloc(new_size, alignment);
   uint8_t old_offset = *(static_cast<uint8_t*>(ptr) - 1);
   void* old_original = static_cast<uint8_t*>(ptr) - old_offset;
@@ -196,7 +200,7 @@ EIGEN_DEVICE_FUNC inline void* handmade_aligned_realloc(void* ptr, std::size_t n
 /** \internal Allocates \a size bytes. The returned pointer is guaranteed to have 16 or 32 bytes alignment depending on
  * the requirements. On allocation error, the returned pointer is null, and std::bad_alloc is thrown.
  */
-EIGEN_DEVICE_FUNC inline void* aligned_malloc(std::size_t size) {
+EIGEN_DEVICE_FUNC inline constexpr void* aligned_malloc(std::size_t size) {
   if (size == 0) return nullptr;
 
   void* result;
@@ -221,7 +225,7 @@ EIGEN_DEVICE_FUNC inline void* aligned_malloc(std::size_t size) {
 }
 
 /** \internal Frees memory allocated with aligned_malloc. */
-EIGEN_DEVICE_FUNC inline void aligned_free(void* ptr) {
+EIGEN_DEVICE_FUNC inline constexpr void aligned_free(void* ptr) {
 #if (EIGEN_DEFAULT_ALIGN_BYTES == 0) || EIGEN_MALLOC_ALREADY_ALIGNED
 
   if (ptr != nullptr) {
@@ -240,7 +244,7 @@ EIGEN_DEVICE_FUNC inline void aligned_free(void* ptr) {
  * \brief Reallocates an aligned block of memory.
  * \throws std::bad_alloc on allocation failure
  */
-EIGEN_DEVICE_FUNC inline void* aligned_realloc(void* ptr, std::size_t new_size, std::size_t old_size) {
+EIGEN_DEVICE_FUNC inline constexpr void* aligned_realloc(void* ptr, std::size_t new_size, std::size_t old_size) {
   if (ptr == nullptr) return aligned_malloc(new_size);
   if (old_size == new_size) return ptr;
   if (new_size == 0) {
@@ -272,12 +276,12 @@ EIGEN_DEVICE_FUNC inline void* aligned_realloc(void* ptr, std::size_t new_size, 
  * On allocation error, the returned pointer is null, and a std::bad_alloc is thrown.
  */
 template <bool Align>
-EIGEN_DEVICE_FUNC inline void* conditional_aligned_malloc(std::size_t size) {
+EIGEN_DEVICE_FUNC inline constexpr void* conditional_aligned_malloc(std::size_t size) {
   return aligned_malloc(size);
 }
 
 template <>
-EIGEN_DEVICE_FUNC inline void* conditional_aligned_malloc<false>(std::size_t size) {
+EIGEN_DEVICE_FUNC inline constexpr void* conditional_aligned_malloc<false>(std::size_t size) {
   if (size == 0) return nullptr;
 
   check_that_malloc_is_allowed();
@@ -290,12 +294,12 @@ EIGEN_DEVICE_FUNC inline void* conditional_aligned_malloc<false>(std::size_t siz
 
 /** \internal Frees memory allocated with conditional_aligned_malloc */
 template <bool Align>
-EIGEN_DEVICE_FUNC inline void conditional_aligned_free(void* ptr) {
+EIGEN_DEVICE_FUNC inline constexpr void conditional_aligned_free(void* ptr) {
   aligned_free(ptr);
 }
 
 template <>
-EIGEN_DEVICE_FUNC inline void conditional_aligned_free<false>(void* ptr) {
+EIGEN_DEVICE_FUNC inline constexpr void conditional_aligned_free<false>(void* ptr) {
   if (ptr != nullptr) {
     check_that_malloc_is_allowed();
     EIGEN_USING_STD(free)
@@ -304,13 +308,14 @@ EIGEN_DEVICE_FUNC inline void conditional_aligned_free<false>(void* ptr) {
 }
 
 template <bool Align>
-EIGEN_DEVICE_FUNC inline void* conditional_aligned_realloc(void* ptr, std::size_t new_size, std::size_t old_size) {
+EIGEN_DEVICE_FUNC inline constexpr void* conditional_aligned_realloc(void* ptr, std::size_t new_size,
+                                                                     std::size_t old_size) {
   return aligned_realloc(ptr, new_size, old_size);
 }
 
 template <>
-EIGEN_DEVICE_FUNC inline void* conditional_aligned_realloc<false>(void* ptr, std::size_t new_size,
-                                                                  std::size_t old_size) {
+EIGEN_DEVICE_FUNC inline constexpr void* conditional_aligned_realloc<false>(void* ptr, std::size_t new_size,
+                                                                            std::size_t old_size) {
   if (ptr == nullptr) return conditional_aligned_malloc<false>(new_size);
   if (old_size == new_size) return ptr;
   if (new_size == 0) {
@@ -331,7 +336,7 @@ EIGEN_DEVICE_FUNC inline void* conditional_aligned_realloc<false>(void* ptr, std
  * The \a size parameters tells on how many objects to call the destructor of T.
  */
 template <typename T>
-EIGEN_DEVICE_FUNC inline void destruct_elements_of_array(T* ptr, std::size_t size) {
+EIGEN_DEVICE_FUNC inline constexpr void destruct_elements_of_array(T* ptr, std::size_t size) {
   // always destruct an array starting from the end.
   if (ptr)
     while (size) ptr[--size].~T();
@@ -341,7 +346,7 @@ EIGEN_DEVICE_FUNC inline void destruct_elements_of_array(T* ptr, std::size_t siz
  * The \a size parameter tells on how many objects to call the constructor of T.
  */
 template <typename T>
-EIGEN_DEVICE_FUNC inline T* default_construct_elements_of_array(T* ptr, std::size_t size) {
+EIGEN_DEVICE_FUNC inline constexpr T* default_construct_elements_of_array(T* ptr, std::size_t size) {
   std::size_t i = 0;
   EIGEN_TRY {
     for (i = 0; i < size; ++i) ::new (ptr + i) T;
@@ -357,7 +362,7 @@ EIGEN_DEVICE_FUNC inline T* default_construct_elements_of_array(T* ptr, std::siz
  * The \a size parameter tells on how many objects to copy.
  */
 template <typename T>
-EIGEN_DEVICE_FUNC inline T* copy_construct_elements_of_array(T* ptr, const T* src, std::size_t size) {
+EIGEN_DEVICE_FUNC inline constexpr T* copy_construct_elements_of_array(T* ptr, const T* src, std::size_t size) {
   std::size_t i = 0;
   EIGEN_TRY {
     for (i = 0; i < size; ++i) ::new (ptr + i) T(*(src + i));
@@ -373,7 +378,7 @@ EIGEN_DEVICE_FUNC inline T* copy_construct_elements_of_array(T* ptr, const T* sr
  * The \a size parameter tells on how many objects to move.
  */
 template <typename T>
-EIGEN_DEVICE_FUNC inline T* move_construct_elements_of_array(T* ptr, T* src, std::size_t size) {
+EIGEN_DEVICE_FUNC inline constexpr T* move_construct_elements_of_array(T* ptr, T* src, std::size_t size) {
   std::size_t i = 0;
   EIGEN_TRY {
     for (i = 0; i < size; ++i) ::new (ptr + i) T(std::move(*(src + i)));
@@ -390,7 +395,7 @@ EIGEN_DEVICE_FUNC inline T* move_construct_elements_of_array(T* ptr, T* src, std
 *****************************************************************************/
 
 template <typename T>
-EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE void check_size_for_overflow(std::size_t size) {
+EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE constexpr void check_size_for_overflow(std::size_t size) {
   if (size > std::size_t(-1) / sizeof(T)) throw_std_bad_alloc();
 }
 
@@ -399,7 +404,7 @@ EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE void check_size_for_overflow(std::size_t s
  * The default constructor of T is called.
  */
 template <typename T>
-EIGEN_DEVICE_FUNC inline T* aligned_new(std::size_t size) {
+EIGEN_DEVICE_FUNC inline constexpr T* aligned_new(std::size_t size) {
   check_size_for_overflow<T>(size);
   T* result = static_cast<T*>(aligned_malloc(sizeof(T) * size));
   EIGEN_TRY { return default_construct_elements_of_array(result, size); }
@@ -411,7 +416,7 @@ EIGEN_DEVICE_FUNC inline T* aligned_new(std::size_t size) {
 }
 
 template <typename T, bool Align>
-EIGEN_DEVICE_FUNC inline T* conditional_aligned_new(std::size_t size) {
+EIGEN_DEVICE_FUNC inline constexpr T* conditional_aligned_new(std::size_t size) {
   check_size_for_overflow<T>(size);
   T* result = static_cast<T*>(conditional_aligned_malloc<Align>(sizeof(T) * size));
   EIGEN_TRY { return default_construct_elements_of_array(result, size); }
@@ -426,7 +431,7 @@ EIGEN_DEVICE_FUNC inline T* conditional_aligned_new(std::size_t size) {
  * The \a size parameters tells on how many objects to call the destructor of T.
  */
 template <typename T>
-EIGEN_DEVICE_FUNC inline void aligned_delete(T* ptr, std::size_t size) {
+EIGEN_DEVICE_FUNC inline constexpr void aligned_delete(T* ptr, std::size_t size) {
   destruct_elements_of_array<T>(ptr, size);
   aligned_free(ptr);
 }
@@ -435,13 +440,14 @@ EIGEN_DEVICE_FUNC inline void aligned_delete(T* ptr, std::size_t size) {
  * The \a size parameters tells on how many objects to call the destructor of T.
  */
 template <typename T, bool Align>
-EIGEN_DEVICE_FUNC inline void conditional_aligned_delete(T* ptr, std::size_t size) {
+EIGEN_DEVICE_FUNC inline constexpr void conditional_aligned_delete(T* ptr, std::size_t size) {
   destruct_elements_of_array<T>(ptr, size);
   conditional_aligned_free<Align>(ptr);
 }
 
 template <typename T, bool Align>
-EIGEN_DEVICE_FUNC inline T* conditional_aligned_realloc_new(T* pts, std::size_t new_size, std::size_t old_size) {
+EIGEN_DEVICE_FUNC inline constexpr T* conditional_aligned_realloc_new(T* pts, std::size_t new_size,
+                                                                      std::size_t old_size) {
   check_size_for_overflow<T>(new_size);
   check_size_for_overflow<T>(old_size);
 
@@ -472,7 +478,7 @@ EIGEN_DEVICE_FUNC inline T* conditional_aligned_realloc_new(T* pts, std::size_t 
 }
 
 template <typename T, bool Align>
-EIGEN_DEVICE_FUNC inline T* conditional_aligned_new_auto(std::size_t size) {
+EIGEN_DEVICE_FUNC inline constexpr T* conditional_aligned_new_auto(std::size_t size) {
   if (size == 0) return 0;  // short-cut. Also fixes Bug 884
   check_size_for_overflow<T>(size);
   T* result = static_cast<T*>(conditional_aligned_malloc<Align>(sizeof(T) * size));
@@ -487,7 +493,8 @@ EIGEN_DEVICE_FUNC inline T* conditional_aligned_new_auto(std::size_t size) {
 }
 
 template <typename T, bool Align>
-EIGEN_DEVICE_FUNC inline T* conditional_aligned_realloc_new_auto(T* pts, std::size_t new_size, std::size_t old_size) {
+EIGEN_DEVICE_FUNC inline constexpr T* conditional_aligned_realloc_new_auto(T* pts, std::size_t new_size,
+                                                                           std::size_t old_size) {
   if (NumTraits<T>::RequireInitialization) {
     return conditional_aligned_realloc_new<T, Align>(pts, new_size, old_size);
   }
@@ -499,7 +506,7 @@ EIGEN_DEVICE_FUNC inline T* conditional_aligned_realloc_new_auto(T* pts, std::si
 }
 
 template <typename T, bool Align>
-EIGEN_DEVICE_FUNC inline void conditional_aligned_delete_auto(T* ptr, std::size_t size) {
+EIGEN_DEVICE_FUNC inline constexpr void conditional_aligned_delete_auto(T* ptr, std::size_t size) {
   if (NumTraits<T>::RequireInitialization) destruct_elements_of_array<T>(ptr, size);
   conditional_aligned_free<Align>(ptr);
 }
@@ -525,7 +532,7 @@ EIGEN_DEVICE_FUNC inline void conditional_aligned_delete_auto(T* ptr, std::size_
  * \sa first_default_aligned()
  */
 template <int Alignment, typename Scalar, typename Index>
-EIGEN_DEVICE_FUNC inline Index first_aligned(const Scalar* array, Index size) {
+EIGEN_DEVICE_FUNC inline constexpr Index first_aligned(const Scalar* array, Index size) {
   const Index ScalarSize = sizeof(Scalar);
   const Index AlignmentSize = Alignment / ScalarSize;
   const Index AlignmentMask = AlignmentSize - 1;
@@ -547,7 +554,7 @@ EIGEN_DEVICE_FUNC inline Index first_aligned(const Scalar* array, Index size) {
 /** \internal Returns the index of the first element of the array that is well aligned with respect the largest packet
  * requirement. \sa first_aligned(Scalar*,Index) and first_default_aligned(DenseBase<Derived>) */
 template <typename Scalar, typename Index>
-EIGEN_DEVICE_FUNC inline Index first_default_aligned(const Scalar* array, Index size) {
+EIGEN_DEVICE_FUNC inline constexpr Index first_default_aligned(const Scalar* array, Index size) {
   typedef typename packet_traits<Scalar>::type DefaultPacketType;
   return first_aligned<unpacket_traits<DefaultPacketType>::alignment>(array, size);
 }
@@ -555,7 +562,7 @@ EIGEN_DEVICE_FUNC inline Index first_default_aligned(const Scalar* array, Index 
 /** \internal Returns the smallest integer multiple of \a base and greater or equal to \a size
  */
 template <typename Index>
-inline Index first_multiple(Index size, Index base) {
+inline constexpr Index first_multiple(Index size, Index base) {
   return ((size + base - 1) / base) * base;
 }
 
@@ -565,13 +572,13 @@ template <typename T, bool UseMemcpy>
 struct smart_copy_helper;
 
 template <typename T>
-EIGEN_DEVICE_FUNC void smart_copy(const T* start, const T* end, T* target) {
+EIGEN_DEVICE_FUNC constexpr void smart_copy(const T* start, const T* end, T* target) {
   smart_copy_helper<T, !NumTraits<T>::RequireInitialization>::run(start, end, target);
 }
 
 template <typename T>
 struct smart_copy_helper<T, true> {
-  EIGEN_DEVICE_FUNC static inline void run(const T* start, const T* end, T* target) {
+  EIGEN_DEVICE_FUNC static inline constexpr void run(const T* start, const T* end, T* target) {
     std::intptr_t size = std::intptr_t(end) - std::intptr_t(start);
     if (size == 0) return;
     eigen_internal_assert(start != 0 && end != 0 && target != 0);
@@ -582,7 +589,9 @@ struct smart_copy_helper<T, true> {
 
 template <typename T>
 struct smart_copy_helper<T, false> {
-  EIGEN_DEVICE_FUNC static inline void run(const T* start, const T* end, T* target) { std::copy(start, end, target); }
+  EIGEN_DEVICE_FUNC static inline constexpr void run(const T* start, const T* end, T* target) {
+    std::copy(start, end, target);
+  }
 };
 
 // intelligent memmove. falls back to std::memmove for POD types, uses std::copy otherwise.
@@ -590,13 +599,13 @@ template <typename T, bool UseMemmove>
 struct smart_memmove_helper;
 
 template <typename T>
-void smart_memmove(const T* start, const T* end, T* target) {
+constexpr void smart_memmove(const T* start, const T* end, T* target) {
   smart_memmove_helper<T, !NumTraits<T>::RequireInitialization>::run(start, end, target);
 }
 
 template <typename T>
 struct smart_memmove_helper<T, true> {
-  static inline void run(const T* start, const T* end, T* target) {
+  static inline constexpr void run(const T* start, const T* end, T* target) {
     std::intptr_t size = std::intptr_t(end) - std::intptr_t(start);
     if (size == 0) return;
     eigen_internal_assert(start != 0 && end != 0 && target != 0);
@@ -606,7 +615,7 @@ struct smart_memmove_helper<T, true> {
 
 template <typename T>
 struct smart_memmove_helper<T, false> {
-  static inline void run(const T* start, const T* end, T* target) {
+  static inline constexpr void run(const T* start, const T* end, T* target) {
     if (std::uintptr_t(target) < std::uintptr_t(start)) {
       std::copy(start, end, target);
     } else {
@@ -617,7 +626,7 @@ struct smart_memmove_helper<T, false> {
 };
 
 template <typename T>
-EIGEN_DEVICE_FUNC T* smart_move(T* start, T* end, T* target) {
+EIGEN_DEVICE_FUNC constexpr T* smart_move(T* start, T* end, T* target) {
   return std::move(start, end, target);
 }
 
@@ -655,11 +664,11 @@ class aligned_stack_memory_handler : noncopyable {
    *T (see NumTraits<T>::RequireInitialization). In this case, the buffer elements will also be destructed when this
    *handler will be destructed. Finally, if \a dealloc is true, then the pointer \a ptr is freed.
    **/
-  EIGEN_DEVICE_FUNC aligned_stack_memory_handler(T* ptr, std::size_t size, bool dealloc)
+  EIGEN_DEVICE_FUNC constexpr aligned_stack_memory_handler(T* ptr, std::size_t size, bool dealloc)
       : m_ptr(ptr), m_size(size), m_deallocate(dealloc) {
     if (NumTraits<T>::RequireInitialization && m_ptr) Eigen::internal::default_construct_elements_of_array(m_ptr, size);
   }
-  EIGEN_DEVICE_FUNC ~aligned_stack_memory_handler() {
+  EIGEN_DEVICE_FUNC constexpr ~aligned_stack_memory_handler() {
     if (NumTraits<T>::RequireInitialization && m_ptr) Eigen::internal::destruct_elements_of_array<T>(m_ptr, m_size);
     if (m_deallocate) Eigen::internal::aligned_free(m_ptr);
   }
@@ -680,7 +689,7 @@ struct local_nested_eval_wrapper {
   typedef typename nested_eval<Xpr, NbEvaluations>::type ObjectType;
   ObjectType object;
 
-  EIGEN_DEVICE_FUNC local_nested_eval_wrapper(const Xpr& xpr, Scalar* ptr) : object(xpr) {
+  EIGEN_DEVICE_FUNC constexpr local_nested_eval_wrapper(const Xpr& xpr, Scalar* ptr) : object(xpr) {
     EIGEN_UNUSED_VARIABLE(ptr);
     eigen_internal_assert(ptr == 0);
   }
@@ -694,7 +703,7 @@ struct local_nested_eval_wrapper<Xpr, NbEvaluations, true> {
   typedef Map<PlainObject, EIGEN_DEFAULT_ALIGN_BYTES> ObjectType;
   ObjectType object;
 
-  EIGEN_DEVICE_FUNC local_nested_eval_wrapper(const Xpr& xpr, Scalar* ptr)
+  EIGEN_DEVICE_FUNC constexpr local_nested_eval_wrapper(const Xpr& xpr, Scalar* ptr)
       : object(ptr == 0 ? reinterpret_cast<Scalar*>(Eigen::internal::aligned_malloc(sizeof(Scalar) * xpr.size())) : ptr,
                xpr.rows(), xpr.cols()),
         m_deallocate(ptr == 0) {
@@ -703,7 +712,7 @@ struct local_nested_eval_wrapper<Xpr, NbEvaluations, true> {
     object = xpr;
   }
 
-  EIGEN_DEVICE_FUNC ~local_nested_eval_wrapper() {
+  EIGEN_DEVICE_FUNC constexpr ~local_nested_eval_wrapper() {
     if (NumTraits<Scalar>::RequireInitialization && object.data())
       Eigen::internal::destruct_elements_of_array(object.data(), object.size());
     if (m_deallocate) Eigen::internal::aligned_free(object.data());
@@ -720,17 +729,17 @@ class scoped_array : noncopyable {
   T* m_ptr;
 
  public:
-  explicit scoped_array(std::ptrdiff_t size) { m_ptr = new T[size]; }
-  ~scoped_array() { delete[] m_ptr; }
-  T& operator[](std::ptrdiff_t i) { return m_ptr[i]; }
-  const T& operator[](std::ptrdiff_t i) const { return m_ptr[i]; }
-  T*& ptr() { return m_ptr; }
-  const T* ptr() const { return m_ptr; }
-  operator const T*() const { return m_ptr; }
+  explicit constexpr scoped_array(std::ptrdiff_t size) { m_ptr = new T[size]; }
+  constexpr ~scoped_array() { delete[] m_ptr; }
+  constexpr T& operator[](std::ptrdiff_t i) { return m_ptr[i]; }
+  constexpr const T& operator[](std::ptrdiff_t i) const { return m_ptr[i]; }
+  constexpr T*& ptr() { return m_ptr; }
+  constexpr const T* ptr() const { return m_ptr; }
+  constexpr operator const T*() const { return m_ptr; }
 };
 
 template <typename T>
-void swap(scoped_array<T>& a, scoped_array<T>& b) {
+constexpr void swap(scoped_array<T>& a, scoped_array<T>& b) {
   std::swap(a.ptr(), b.ptr());
 }
 
@@ -768,7 +777,7 @@ void swap(scoped_array<T>& a, scoped_array<T>& b) {
 #if (EIGEN_COMP_GNUC || EIGEN_COMP_CLANG)
 #define EIGEN_ALIGNED_ALLOCA(SIZE) __builtin_alloca_with_align(SIZE, CHAR_BIT* EIGEN_DEFAULT_ALIGN_BYTES)
 #else
-EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE void* eigen_aligned_alloca_helper(void* ptr) {
+EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr void* eigen_aligned_alloca_helper(void* ptr) {
   constexpr std::uintptr_t mask = EIGEN_DEFAULT_ALIGN_BYTES - 1;
   std::uintptr_t ptr_int = std::uintptr_t(ptr);
   std::uintptr_t aligned_ptr_int = (ptr_int + mask) & ~mask;
@@ -927,28 +936,26 @@ class aligned_allocator : public std::allocator<T> {
     typedef aligned_allocator<U> other;
   };
 
-  aligned_allocator() : std::allocator<T>() {}
+  constexpr aligned_allocator() = default;
 
-  aligned_allocator(const aligned_allocator& other) : std::allocator<T>(other) {}
+  constexpr aligned_allocator(const aligned_allocator& other) : std::allocator<T>(other) {}
 
   template <class U>
-  aligned_allocator(const aligned_allocator<U>& other) : std::allocator<T>(other) {}
-
-  ~aligned_allocator() {}
+  constexpr aligned_allocator(const aligned_allocator<U>& other) : std::allocator<T>(other) {}
 
 #if EIGEN_COMP_GNUC_STRICT && EIGEN_GNUC_STRICT_AT_LEAST(7, 0, 0)
   // In gcc std::allocator::max_size() is bugged making gcc triggers a warning:
   // eigen/Eigen/src/Core/util/Memory.h:189:12: warning: argument 1 value '18446744073709551612' exceeds maximum object
   // size 9223372036854775807 See https://gcc.gnu.org/bugzilla/show_bug.cgi?id=87544
-  size_type max_size() const { return (std::numeric_limits<std::ptrdiff_t>::max)() / sizeof(T); }
+  constexpr size_type max_size() const { return (std::numeric_limits<std::ptrdiff_t>::max)() / sizeof(T); }
 #endif
 
-  pointer allocate(size_type num, const void* /*hint*/ = 0) {
+  constexpr pointer allocate(size_type num, const void* /*hint*/ = 0) {
     internal::check_size_for_overflow<T>(num);
     return static_cast<pointer>(internal::aligned_malloc(num * sizeof(T)));
   }
 
-  void deallocate(pointer p, size_type /*num*/) { internal::aligned_free(p); }
+  constexpr void deallocate(pointer p, size_type /*num*/) { internal::aligned_free(p); }
 };
 
 //---------- Cache sizes ----------
@@ -985,11 +992,18 @@ namespace internal {
 
 #ifdef EIGEN_CPUID
 
-inline bool cpuid_is_vendor(int abcd[4], const int vendor[3]) {
+inline constexpr bool cpuid_is_vendor(int abcd[4], const int vendor[3]) {
   return abcd[1] == vendor[0] && abcd[3] == vendor[1] && abcd[2] == vendor[2];
 }
 
-inline void queryCacheSizes_intel_direct(int& l1, int& l2, int& l3) {
+inline constexpr void queryCacheSizes_intel_direct(int& l1, int& l2, int& l3) {
+  if (internal::is_constant_evaluated()) {
+    l1 = 0;
+    l2 = 0;
+    l3 = 0;
+    return;
+  }
+
   int abcd[4];
   l1 = l2 = l3 = 0;
   int cache_id = 0;
@@ -1026,7 +1040,14 @@ inline void queryCacheSizes_intel_direct(int& l1, int& l2, int& l3) {
   } while (cache_type > 0 && cache_id < 16);
 }
 
-inline void queryCacheSizes_intel_codes(int& l1, int& l2, int& l3) {
+inline constexpr void queryCacheSizes_intel_codes(int& l1, int& l2, int& l3) {
+  if (internal::is_constant_evaluated()) {
+    l1 = 0;
+    l2 = 0;
+    l3 = 0;
+    return;
+  }
+
   int abcd[4];
   abcd[0] = abcd[1] = abcd[2] = abcd[3] = 0;
   l1 = l2 = l3 = 0;
@@ -1222,7 +1243,7 @@ inline void queryCacheSizes_intel_codes(int& l1, int& l2, int& l3) {
   l3 *= 1024;
 }
 
-inline void queryCacheSizes_intel(int& l1, int& l2, int& l3, int max_std_funcs) {
+inline constexpr void queryCacheSizes_intel(int& l1, int& l2, int& l3, int max_std_funcs) {
   if (max_std_funcs >= 4)
     queryCacheSizes_intel_direct(l1, l2, l3);
   else if (max_std_funcs >= 2)
@@ -1231,7 +1252,14 @@ inline void queryCacheSizes_intel(int& l1, int& l2, int& l3, int max_std_funcs) 
     l1 = l2 = l3 = 0;
 }
 
-inline void queryCacheSizes_amd(int& l1, int& l2, int& l3) {
+inline constexpr void queryCacheSizes_amd(int& l1, int& l2, int& l3) {
+  if (internal::is_constant_evaluated()) {
+    l1 = 0;
+    l2 = 0;
+    l3 = 0;
+    return;
+  }
+
   int abcd[4];
   abcd[0] = abcd[1] = abcd[2] = abcd[3] = 0;
 
@@ -1252,7 +1280,14 @@ inline void queryCacheSizes_amd(int& l1, int& l2, int& l3) {
 
 /** \internal
  * Queries and returns the cache sizes in Bytes of the L1, L2, and L3 data caches respectively */
-inline void queryCacheSizes(int& l1, int& l2, int& l3) {
+inline constexpr void queryCacheSizes(int& l1, int& l2, int& l3) {
+  if (internal::is_constant_evaluated()) {
+    l1 = 0;
+    l2 = 0;
+    l3 = 0;
+    return;
+  }
+
 #ifdef EIGEN_CPUID
   int abcd[4];
   const int GenuineIntel[] = {0x756e6547, 0x49656e69, 0x6c65746e};
@@ -1288,7 +1323,7 @@ inline void queryCacheSizes(int& l1, int& l2, int& l3) {
 
 /** \internal
  * \returns the size in Bytes of the L1 data cache */
-inline int queryL1CacheSize() {
+inline constexpr int queryL1CacheSize() {
   int l1(-1), l2, l3;
   queryCacheSizes(l1, l2, l3);
   return l1;
@@ -1296,7 +1331,7 @@ inline int queryL1CacheSize() {
 
 /** \internal
  * \returns the size in Bytes of the L2 or L3 cache if this later is present */
-inline int queryTopLevelCacheSize() {
+inline constexpr int queryTopLevelCacheSize() {
   int l1, l2(-1), l3(-1);
   queryCacheSizes(l1, l2, l3);
   return (std::max)(l2, l3);
@@ -1310,7 +1345,7 @@ inline int queryTopLevelCacheSize() {
 using std::construct_at;
 #else
 template <class T, class... Args>
-EIGEN_DEVICE_FUNC T* construct_at(T* p, Args&&... args) {
+EIGEN_DEVICE_FUNC constexpr T* construct_at(T* p, Args&&... args) {
   return ::new (const_cast<void*>(static_cast<const volatile void*>(p))) T(std::forward<Args>(args)...);
 }
 #endif
@@ -1324,7 +1359,7 @@ EIGEN_DEVICE_FUNC T* construct_at(T* p, Args&&... args) {
 using std::destroy_at;
 #else
 template <class T>
-EIGEN_DEVICE_FUNC void destroy_at(T* p) {
+EIGEN_DEVICE_FUNC constexpr void destroy_at(T* p) {
   p->~T();
 }
 #endif
