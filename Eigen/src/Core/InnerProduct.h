@@ -76,12 +76,22 @@ struct inner_product_evaluator {
 
   EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Index size() const { return m_size.value(); }
 
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Scalar coeff(Index index) const {
+    return m_func.coeff(m_lhs.coeff(index), m_rhs.coeff(index));
+  }
+
   EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Scalar coeff(const Scalar& value, Index index) const {
     return m_func.coeff(value, m_lhs.coeff(index), m_rhs.coeff(index));
   }
 
   template <typename PacketType, int LhsMode = LhsAlignment, int RhsMode = RhsAlignment>
-  EIGEN_STRONG_INLINE PacketType packet(PacketType value, Index index) const {
+  EIGEN_STRONG_INLINE PacketType packet(Index index) const {
+    return m_func.packet(m_lhs.template packet<LhsMode, PacketType>(index),
+                         m_rhs.template packet<RhsMode, PacketType>(index));
+  }
+
+  template <typename PacketType, int LhsMode = LhsAlignment, int RhsMode = RhsAlignment>
+  EIGEN_STRONG_INLINE PacketType packet(const PacketType& value, Index index) const {
     return m_func.packet(value, m_lhs.template packet<LhsMode, PacketType>(index),
                          m_rhs.template packet<RhsMode, PacketType>(index));
   }
@@ -100,18 +110,12 @@ template <typename Evaluator>
 struct inner_product_impl<Evaluator, false> {
   using Scalar = typename Evaluator::Scalar;
   static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Scalar run(const Evaluator& eval) {
+    eigen_assert(eval.size() > 0);
     const Index size = eval.size();
-    const Index size2 = numext::round_down(size, 2);
-    Scalar result = Scalar(0);
-    if (size2 > 0) {
-      Scalar result2 = Scalar(0);
-      for (Index k = 0; k < size2; k += 2) {
-        result = eval.coeff(result, k);
-        result2 = eval.coeff(result2, k + 1);
-      }
-      result += result2;
+    Scalar result = eval.coeff(0);
+    for (Index k = 1; k < size; k++) {
+      result = eval.coeff(result, k);
     }
-    if (size > size2) result = eval.coeff(result, size2);
     return result;
   }
 };
@@ -119,30 +123,53 @@ struct inner_product_impl<Evaluator, false> {
 // vector loop
 template <typename Evaluator>
 struct inner_product_impl<Evaluator, true> {
+  using UnsignedIndex = std::make_unsigned_t<Index>;
   using Scalar = typename Evaluator::Scalar;
   using Packet = typename Evaluator::Packet;
   static constexpr int PacketSize = unpacket_traits<Packet>::size;
   static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Scalar run(const Evaluator& eval) {
-    const Index size = eval.size();
-    const Index packetEnd = numext::round_down(size, PacketSize);
-    const Index packetEnd2 = numext::round_down(size, 2 * PacketSize);
+    eigen_assert(eval.size() > 0);
+    // cast to UnsignedIndex so the compiler assumes non-negative indices
+    const UnsignedIndex size = static_cast<UnsignedIndex>(eval.size());
+    const UnsignedIndex numPackets = size / PacketSize;
+    const UnsignedIndex packetEnd = numext::round_down(size, PacketSize);
+
     Scalar result = Scalar(0);
-    if (packetEnd > 0) {
-      Packet presult = pzero(Packet());
-      if (packetEnd2 > 0) {
-        Packet presult2 = pzero(Packet());
-        for (Index k = 0; k < packetEnd2; k += 2 * PacketSize) {
-          presult = eval.packet(presult, k);
-          presult2 = eval.packet(presult2, k + PacketSize);
-        }
-        presult = padd(presult, presult2);
+
+    if (numPackets > 0) {
+      const UnsignedIndex numInit = (numPackets - 1) % 4;
+      const UnsignedIndex quadStart = (numInit + 1) * PacketSize;
+
+      Packet presult0 = eval.template packet<Packet>(0);
+      Packet presult1 = pzero(Packet());
+      Packet presult2 = pzero(Packet());
+      Packet presult3 = pzero(Packet());
+
+      switch (numInit) {
+        case 3:
+          presult3 = eval.template packet<Packet>(3 * PacketSize);
+        case 2:
+          presult2 = eval.template packet<Packet>(2 * PacketSize);
+        case 1:
+          presult1 = eval.template packet<Packet>(1 * PacketSize);
       }
-      if (packetEnd > packetEnd2) {
-        presult = eval.packet(presult, packetEnd2);
+
+      for (UnsignedIndex k = quadStart; k < packetEnd; k += 4 * PacketSize) {
+        presult0 = eval.packet(presult0, k + 0 * PacketSize);
+        presult1 = eval.packet(presult1, k + 1 * PacketSize);
+        presult2 = eval.packet(presult2, k + 2 * PacketSize);
+        presult3 = eval.packet(presult3, k + 3 * PacketSize);
       }
-      result = predux(presult);
+
+      result = predux(padd(padd(presult0, presult1), padd(presult2, presult3)));
     }
-    for (Index k = packetEnd; k < size; k++) result = eval.coeff(result, k);
+
+    if (size > packetEnd) {
+      result += eval.coeff(packetEnd);
+      for (UnsignedIndex k = packetEnd + 1; k < size; k++) {
+        result = eval.coeff(result, k);
+      }
+    }
     return result;
   }
 };
@@ -172,6 +199,9 @@ template <typename LhsScalar, typename RhsScalar, bool Conj>
 struct scalar_inner_product_op {
   using result_type = typename ScalarBinaryOpTraits<LhsScalar, RhsScalar>::ReturnType;
   using conj_helper = conditional_conj<LhsScalar, Conj>;
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE result_type coeff(const LhsScalar& a, const RhsScalar& b) const {
+    return (conj_helper::coeff(a) * b);
+  }
   EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE result_type coeff(const result_type& accum, const LhsScalar& a,
                                                           const RhsScalar& b) const {
     return (conj_helper::coeff(a) * b) + accum;
@@ -183,8 +213,15 @@ template <typename Scalar, bool Conj>
 struct scalar_inner_product_op<Scalar, Scalar, Conj> {
   using result_type = Scalar;
   using conj_helper = conditional_conj<Scalar, Conj>;
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Scalar coeff(const Scalar& a, const Scalar& b) const {
+    return pmul(conj_helper::coeff(a), b);
+  }
   EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Scalar coeff(const Scalar& accum, const Scalar& a, const Scalar& b) const {
     return pmadd(conj_helper::coeff(a), b, accum);
+  }
+  template <typename Packet>
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Packet packet(const Packet& a, const Packet& b) const {
+    return pmul(conj_helper::packet(a), b);
   }
   template <typename Packet>
   EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Packet packet(const Packet& accum, const Packet& a, const Packet& b) const {
@@ -202,6 +239,7 @@ struct default_inner_product_impl {
   using result_type = typename Evaluator::Scalar;
   static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE result_type run(const MatrixBase<Lhs>& a, const MatrixBase<Rhs>& b) {
     Evaluator eval(a.derived(), b.derived(), Op());
+    if (eval.size() == 0) return result_type(0);
     return inner_product_impl<Evaluator>::run(eval);
   }
 };
