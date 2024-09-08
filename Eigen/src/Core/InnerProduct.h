@@ -129,7 +129,6 @@ struct inner_product_impl<Evaluator, true> {
   static constexpr int PacketSize = unpacket_traits<Packet>::size;
   static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Scalar run(const Evaluator& eval) {
     eigen_assert(eval.size() > 0);
-    // cast to UnsignedIndex so the compiler assumes non-negative indices
     const UnsignedIndex size = static_cast<UnsignedIndex>(eval.size());
     const UnsignedIndex numPackets = size / PacketSize;
     const UnsignedIndex packetEnd = numext::round_down(size, PacketSize);
@@ -148,8 +147,10 @@ struct inner_product_impl<Evaluator, true> {
       switch (numInit) {
         case 3:
           presult3 = eval.template packet<Packet>(3 * PacketSize);
+          /* fall through */
         case 2:
           presult2 = eval.template packet<Packet>(2 * PacketSize);
+          /* fall through */
         case 1:
           presult1 = eval.template packet<Packet>(1 * PacketSize);
       }
