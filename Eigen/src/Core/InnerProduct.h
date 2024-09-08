@@ -147,10 +147,10 @@ struct inner_product_impl<Evaluator, true> {
       switch (numInit) {
         case 3:
           presult3 = eval.template packet<Packet>(3 * PacketSize);
-          /* fall through */
+          /* fallthrough */
         case 2:
           presult2 = eval.template packet<Packet>(2 * PacketSize);
-          /* fall through */
+          /* fallthrough */
         case 1:
           presult1 = eval.template packet<Packet>(1 * PacketSize);
       }
