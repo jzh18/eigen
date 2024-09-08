@@ -110,8 +110,8 @@ template <typename Evaluator>
 struct inner_product_impl<Evaluator, false> {
   using Scalar = typename Evaluator::Scalar;
   static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Scalar run(const Evaluator& eval) {
-    eigen_assert(eval.size() > 0);
     const Index size = eval.size();
+    if (size == 0) return Scalar(0);
     Scalar result = eval.coeff(0);
     for (Index k = 1; k < size; k++) {
       result = eval.coeff(result, k);
@@ -128,7 +128,6 @@ struct inner_product_impl<Evaluator, true> {
   using Packet = typename Evaluator::Packet;
   static constexpr int PacketSize = unpacket_traits<Packet>::size;
   static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Scalar run(const Evaluator& eval) {
-    eigen_assert(eval.size() > 0);
     const UnsignedIndex size = static_cast<UnsignedIndex>(eval.size());
     const UnsignedIndex numPackets = size / PacketSize;
     const UnsignedIndex packetEnd = numext::round_down(size, PacketSize);
@@ -144,15 +143,9 @@ struct inner_product_impl<Evaluator, true> {
       Packet presult2 = pzero(Packet());
       Packet presult3 = pzero(Packet());
 
-      if (numInit >= 1) {
-        presult1 = eval.template packet<Packet>(1 * PacketSize);
-      }
-      if (numInit >= 2) {
-        presult2 = eval.template packet<Packet>(2 * PacketSize);
-      }
-      if (numInit == 3) {
-        presult3 = eval.template packet<Packet>(3 * PacketSize);
-      }
+      if (numInit >= 1) presult1 = eval.template packet<Packet>(1 * PacketSize);
+      if (numInit >= 2) presult2 = eval.template packet<Packet>(2 * PacketSize);
+      if (numInit == 3) presult3 = eval.template packet<Packet>(3 * PacketSize);
 
       for (UnsignedIndex k = quadStart; k < packetEnd; k += 4 * PacketSize) {
         presult0 = eval.packet(presult0, k + 0 * PacketSize);
@@ -165,10 +158,11 @@ struct inner_product_impl<Evaluator, true> {
     }
 
     if (size > packetEnd) {
-      result += eval.coeff(packetEnd);
+      Scalar scalarAccum = eval.coeff(packetEnd);
       for (UnsignedIndex k = packetEnd + 1; k < size; k++) {
-        result = eval.coeff(result, k);
+        scalarAccum = eval.coeff(scalarAccum, k);
       }
+      result += scalarAccum;
     }
     return result;
   }
@@ -239,7 +233,6 @@ struct default_inner_product_impl {
   using result_type = typename Evaluator::Scalar;
   static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE result_type run(const MatrixBase<Lhs>& a, const MatrixBase<Rhs>& b) {
     Evaluator eval(a.derived(), b.derived(), Op());
-    if (eval.size() == 0) return result_type(0);
     return inner_product_impl<Evaluator>::run(eval);
   }
 };
