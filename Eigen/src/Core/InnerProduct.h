@@ -144,15 +144,14 @@ struct inner_product_impl<Evaluator, true> {
       Packet presult2 = pzero(Packet());
       Packet presult3 = pzero(Packet());
 
-      switch (numInit) {
-        case 3:
-          presult3 = eval.template packet<Packet>(3 * PacketSize);
-          /* fallthrough */
-        case 2:
-          presult2 = eval.template packet<Packet>(2 * PacketSize);
-          /* fallthrough */
-        case 1:
-          presult1 = eval.template packet<Packet>(1 * PacketSize);
+      if (numInit >= 1) {
+        presult1 = eval.template packet<Packet>(1 * PacketSize);
+      }
+      if (numInit >= 2) {
+        presult2 = eval.template packet<Packet>(2 * PacketSize);
+      }
+      if (numInit == 3) {
+        presult3 = eval.template packet<Packet>(3 * PacketSize);
       }
 
       for (UnsignedIndex k = quadStart; k < packetEnd; k += 4 * PacketSize) {
