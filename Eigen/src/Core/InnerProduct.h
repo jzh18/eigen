@@ -112,10 +112,12 @@ struct inner_product_impl<Evaluator, false> {
   static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Scalar run(const Evaluator& eval) {
     const Index size = eval.size();
     if (size == 0) return Scalar(0);
+
     Scalar result = eval.coeff(0);
     for (Index k = 1; k < size; k++) {
       result = eval.coeff(result, k);
     }
+
     return result;
   }
 };
@@ -129,33 +131,37 @@ struct inner_product_impl<Evaluator, true> {
   static constexpr int PacketSize = unpacket_traits<Packet>::size;
   static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Scalar run(const Evaluator& eval) {
     const UnsignedIndex size = static_cast<UnsignedIndex>(eval.size());
-    const UnsignedIndex numPackets = size / PacketSize;
+    if (size < PacketSize) return inner_product_impl<Evaluator, false>::run(eval);
     const UnsignedIndex packetEnd = numext::round_down(size, PacketSize);
+    const UnsignedIndex numPackets = size / PacketSize;
 
-    Scalar result = Scalar(0);
+    Packet presult0 = eval.template packet<Packet>(0 * PacketSize);
+    Packet presult1 = pzero(Packet());
+    Packet presult2 = pzero(Packet());
+    Packet presult3 = pzero(Packet());
 
-    if (numPackets > 0) {
-      const UnsignedIndex numInit = (numPackets - 1) % 4;
-      const UnsignedIndex quadStart = (numInit + 1) * PacketSize;
+    if (numPackets >= 2) presult1 = eval.template packet<Packet>(1 * PacketSize);
+    if (numPackets >= 3) presult2 = eval.template packet<Packet>(2 * PacketSize);
+    if (numPackets >= 4) {
+      presult3 = eval.template packet<Packet>(3 * PacketSize);
 
-      Packet presult0 = eval.template packet<Packet>(0);
-      Packet presult1 = pzero(Packet());
-      Packet presult2 = pzero(Packet());
-      Packet presult3 = pzero(Packet());
+      const UnsignedIndex numRemPackets = (numPackets - 4) % 4;
+      const UnsignedIndex quadStart = 4 * PacketSize;
+      const UnsignedIndex quadEnd = (numPackets - numRemPackets) * PacketSize;
 
-      if (numInit >= 1) presult1 = eval.template packet<Packet>(1 * PacketSize);
-      if (numInit >= 2) presult2 = eval.template packet<Packet>(2 * PacketSize);
-      if (numInit == 3) presult3 = eval.template packet<Packet>(3 * PacketSize);
-
-      for (UnsignedIndex k = quadStart; k < packetEnd; k += 4 * PacketSize) {
+      for (UnsignedIndex k = quadStart; k < quadEnd; k += 4 * PacketSize) {
         presult0 = eval.packet(presult0, k + 0 * PacketSize);
         presult1 = eval.packet(presult1, k + 1 * PacketSize);
         presult2 = eval.packet(presult2, k + 2 * PacketSize);
         presult3 = eval.packet(presult3, k + 3 * PacketSize);
       }
 
-      result = predux(padd(padd(presult0, presult1), padd(presult2, presult3)));
+      if (numRemPackets >= 1) presult0 = eval.packet(presult0, quadEnd + 0 * PacketSize);
+      if (numRemPackets >= 2) presult1 = eval.packet(presult1, quadEnd + 1 * PacketSize);
+      if (numRemPackets == 3) presult2 = eval.packet(presult2, quadEnd + 2 * PacketSize);
     }
+
+    Scalar result = predux(padd(padd(presult0, presult1), padd(presult2, presult3)));
 
     if (size > packetEnd) {
       Scalar scalarAccum = eval.coeff(packetEnd);
@@ -164,6 +170,7 @@ struct inner_product_impl<Evaluator, true> {
       }
       result += scalarAccum;
     }
+
     return result;
   }
 };
