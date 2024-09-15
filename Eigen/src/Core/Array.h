@@ -127,7 +127,10 @@ class Array : public PlainObjectBase<Array<Scalar_, Rows_, Cols_, Options_, MaxR
 #endif
 
         EIGEN_DEVICE_FUNC Array(Array && other) = default;
-  EIGEN_DEVICE_FUNC Array& operator=(Array&& other) = default;
+  EIGEN_DEVICE_FUNC Array& operator=(Array&& other) EIGEN_NOEXCEPT_IF(std::is_nothrow_move_assignable<Scalar>::value) {
+    Base::operator=(std::move(other));
+    return *this;
+  }
 
   /** \copydoc PlainObjectBase(const Scalar& a0, const Scalar& a1, const Scalar& a2, const Scalar& a3, const
    * ArgTypes&... args)
