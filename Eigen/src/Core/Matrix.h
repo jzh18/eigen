@@ -377,7 +377,7 @@ class Matrix : public PlainObjectBase<Matrix<Scalar_, Rows_, Cols_, Options_, Ma
   }
 
   /** \brief Copy constructor */
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Matrix(const Matrix& other) = default;
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr Matrix(const Matrix& other) = default;
 
   /** \brief Copy constructor for generic expressions.
    * \sa MatrixBase::operator=(const EigenBase<OtherDerived>&)
