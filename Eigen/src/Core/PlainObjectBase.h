@@ -485,7 +485,7 @@ class PlainObjectBase : public internal::dense_xpr_base<Derived>::type
   }
 #endif
 
-  EIGEN_DEVICE_FUNC constexpr PlainObjectBase(PlainObjectBase&& other) = default;
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr PlainObjectBase(PlainObjectBase&& other) = default;
 
   EIGEN_DEVICE_FUNC constexpr PlainObjectBase& operator=(PlainObjectBase&& other) EIGEN_NOEXCEPT {
     m_storage = std::move(other.m_storage);
