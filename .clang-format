@@ -7,6 +7,7 @@ BasedOnStyle: Google
 ColumnLimit:  120
 StatementMacros:
   - EIGEN_STATIC_ASSERT
+  - EIGEN_INITIALIZE_COEFFS_IF_THAT_OPTION_IS_ENABLED
 SortIncludes: false
 AttributeMacros:
 - EIGEN_STRONG_INLINE
