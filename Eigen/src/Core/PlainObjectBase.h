@@ -472,7 +472,7 @@ class PlainObjectBase : public internal::dense_xpr_base<Derived>::type
   // Prevent user from trying to instantiate PlainObjectBase objects
   // by making all its constructor protected. See bug 1074.
  protected:
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr PlainObjectBase() : m_storage() {}
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr PlainObjectBase() = default;
 
 #ifndef EIGEN_PARSED_BY_DOXYGEN
   // FIXME is it still needed ?

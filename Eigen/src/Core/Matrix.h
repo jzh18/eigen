@@ -250,7 +250,7 @@ class Matrix : public PlainObjectBase<Matrix<Scalar_, Rows_, Cols_, Options_, Ma
    *
    * \sa resize(Index,Index)
    */
-#if defined(EIGEN_INITIALIZE_COEFFS_IF_THAT_OPTION_IS_ENABLED)
+#if defined(EIGEN_INITIALIZE_COEFFS)
   EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr Matrix() { EIGEN_INITIALIZE_COEFFS_IF_THAT_OPTION_IS_ENABLED }
 #else
   EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr Matrix() = default;

@@ -174,19 +174,23 @@ class DenseStorage {
   internal::plain_array<T, Size, Options_> m_data;
 
  public:
-  constexpr EIGEN_DEVICE_FUNC DenseStorage(){EIGEN_INTERNAL_DENSE_STORAGE_CTOR_PLUGIN(
-      Index size =
-          Size)} EIGEN_DEVICE_FUNC explicit constexpr DenseStorage(internal::constructor_without_unaligned_array_assert)
+#ifdef EIGEN_DENSE_STORAGE_CTOR_PLUGIN
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr DenseStorage() {
+    EIGEN_INTERNAL_DENSE_STORAGE_CTOR_PLUGIN(Index size = Size)
+  }
+#else
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr DenseStorage() = default;
+#endif
+  EIGEN_DEVICE_FUNC explicit constexpr DenseStorage(internal::constructor_without_unaligned_array_assert)
       : m_data(internal::constructor_without_unaligned_array_assert()) {}
 #if defined(EIGEN_DENSE_STORAGE_CTOR_PLUGIN)
-  EIGEN_DEVICE_FUNC constexpr DenseStorage(const DenseStorage& other)
-      : m_data(other.m_data){EIGEN_INTERNAL_DENSE_STORAGE_CTOR_PLUGIN(Index size = Size)}
+  EIGEN_DEVICE_FUNC constexpr DenseStorage(const DenseStorage& other) : m_data(other.m_data) {
+    EIGEN_INTERNAL_DENSE_STORAGE_CTOR_PLUGIN(Index size = Size)
+  }
 #else
   EIGEN_DEVICE_FUNC constexpr DenseStorage(const DenseStorage&) = default;
 #endif
-        EIGEN_DEVICE_FUNC constexpr DenseStorage
-        &
-        operator=(const DenseStorage&) = default;
+  EIGEN_DEVICE_FUNC constexpr DenseStorage& operator=(const DenseStorage&) = default;
   EIGEN_DEVICE_FUNC constexpr DenseStorage(DenseStorage&&) = default;
   EIGEN_DEVICE_FUNC constexpr DenseStorage& operator=(DenseStorage&&) = default;
   EIGEN_DEVICE_FUNC constexpr DenseStorage(Index size, Index rows, Index cols) {
