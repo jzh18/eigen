@@ -481,7 +481,7 @@ class PlainObjectBase : public internal::dense_xpr_base<Derived>::type
       : m_storage(internal::constructor_without_unaligned_array_assert()) {}
 #endif
 
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr PlainObjectBase(PlainObjectBase&& other) = default;
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr PlainObjectBase(PlainObjectBase&&) = default;
 
   EIGEN_DEVICE_FUNC constexpr PlainObjectBase& operator=(PlainObjectBase&& other) EIGEN_NOEXCEPT {
     m_storage = std::move(other.m_storage);
@@ -489,7 +489,7 @@ class PlainObjectBase : public internal::dense_xpr_base<Derived>::type
   }
 
   /** Copy constructor */
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr PlainObjectBase(const PlainObjectBase& other) = default;
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr PlainObjectBase(const PlainObjectBase&) = default;
   EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE PlainObjectBase(Index size, Index rows, Index cols)
       : m_storage(size, rows, cols) {}
 
