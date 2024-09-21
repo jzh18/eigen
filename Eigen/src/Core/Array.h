@@ -122,7 +122,6 @@ class Array : public PlainObjectBase<Array<Scalar_, Rows_, Cols_, Options_, MaxR
 #else
   EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr Array() = default;
 #endif
-
   EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr Array(Array&&) = default;
   EIGEN_DEVICE_FUNC Array& operator=(Array&& other) EIGEN_NOEXCEPT_IF(std::is_nothrow_move_assignable<Scalar>::value) {
     Base::operator=(std::move(other));
@@ -227,7 +226,11 @@ class Array : public PlainObjectBase<Array<Scalar_, Rows_, Cols_, Options_, MaxR
   }
 
   /** Copy constructor */
+<<<<<<< HEAD
   EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr Array(const Array&) = default;
+=======
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr Array(const Array& other) = default;
+>>>>>>> 2d4c9b400cca33d2f5cf316efc7151236244edb1
 
  private:
   struct PrivateType {};
