@@ -116,6 +116,7 @@ class DenseStorage;
 // purely fixed-size matrix
 template <typename T, int Size, int Rows_, int Cols_, int Options_>
 class DenseStorage {
+  static constexpr int SizeAtCompileTime = Size;
   internal::plain_array<T, Size, Options_> m_data;
 
  public:
@@ -268,6 +269,7 @@ class DenseStorage<T, 0, Dynamic, Cols_, Options_> {
 // dynamic-size matrix with fixed-size storage
 template <typename T, int Size, int Options_>
 class DenseStorage<T, Size, Dynamic, Dynamic, Options_> {
+  static constexpr int SizeAtCompileTime = Size;
   internal::plain_array<T, Size, Options_> m_data;
   Index m_rows;
   Index m_cols;
@@ -308,6 +310,7 @@ class DenseStorage<T, Size, Dynamic, Dynamic, Options_> {
 // dynamic-size matrix with fixed-size storage and fixed width
 template <typename T, int Size, int Cols_, int Options_>
 class DenseStorage<T, Size, Dynamic, Cols_, Options_> {
+  static constexpr int SizeAtCompileTime = Size;
   internal::plain_array<T, Size, Options_> m_data;
   Index m_rows;
 
@@ -371,6 +374,7 @@ class DenseStorage<T, Size, Rows_, Dynamic, Options_> {
 // purely dynamic matrix.
 template <typename T, int Options_>
 class DenseStorage<T, Dynamic, Dynamic, Dynamic, Options_> {
+  static constexpr int Size = Dynamic;
   T* m_data;
   Index m_rows;
   Index m_cols;
@@ -446,6 +450,7 @@ class DenseStorage<T, Dynamic, Dynamic, Dynamic, Options_> {
 // matrix with dynamic width and fixed height (so that matrix has dynamic size).
 template <typename T, int Rows_, int Options_>
 class DenseStorage<T, Dynamic, Rows_, Dynamic, Options_> {
+  static constexpr int Size = Dynamic;
   T* m_data;
   Index m_cols;
 
@@ -512,6 +517,7 @@ class DenseStorage<T, Dynamic, Rows_, Dynamic, Options_> {
 // matrix with dynamic height and fixed width (so that matrix has dynamic size).
 template <typename T, int Cols_, int Options_>
 class DenseStorage<T, Dynamic, Dynamic, Cols_, Options_> {
+  static constexpr int Size = Dynamic;
   T* m_data;
   Index m_rows;
 
