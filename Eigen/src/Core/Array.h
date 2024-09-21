@@ -117,7 +117,11 @@ class Array : public PlainObjectBase<Array<Scalar_, Rows_, Cols_, Options_, MaxR
    *
    * \sa resize(Index,Index)
    */
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Array() : Base() { EIGEN_INITIALIZE_COEFFS_IF_THAT_OPTION_IS_ENABLED }
+#ifdef EIGEN_INITIALIZE_COEFFS
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr Array() : Base() { EIGEN_INITIALIZE_COEFFS_IF_THAT_OPTION_IS_ENABLED }
+#else
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr Array() = default;
+#endif
 
   EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr Array(Array&&) = default;
   EIGEN_DEVICE_FUNC Array& operator=(Array&& other) EIGEN_NOEXCEPT_IF(std::is_nothrow_move_assignable<Scalar>::value) {
