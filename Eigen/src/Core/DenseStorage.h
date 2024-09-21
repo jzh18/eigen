@@ -30,7 +30,7 @@ namespace internal {
 template <typename T, int Size>
 struct check_static_allocation_size {
 #if EIGEN_STACK_ALLOCATION_LIMIT
-  EIGEN_STATIC_ASSERT(Size * sizeof(T) <= EIGEN_STACK_ALLOCATION_LIMIT, OBJECT_ALLOCATED_ON_STACK_IS_TOO_BIG);
+  EIGEN_STATIC_ASSERT(Size * sizeof(T) <= EIGEN_STACK_ALLOCATION_LIMIT, OBJECT_ALLOCATED_ON_STACK_IS_TOO_BIG)
 #endif
 };
 
