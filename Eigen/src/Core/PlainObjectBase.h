@@ -474,13 +474,6 @@ class PlainObjectBase : public internal::dense_xpr_base<Derived>::type
  protected:
   EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr PlainObjectBase() = default;
 
-#ifndef EIGEN_PARSED_BY_DOXYGEN
-  // FIXME is it still needed ?
-  /** \internal */
-  EIGEN_DEVICE_FUNC constexpr explicit PlainObjectBase(internal::constructor_without_unaligned_array_assert)
-      : m_storage(internal::constructor_without_unaligned_array_assert()) {}
-#endif
-
   EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr PlainObjectBase(PlainObjectBase&&) = default;
 
   EIGEN_DEVICE_FUNC constexpr PlainObjectBase& operator=(PlainObjectBase&& other) EIGEN_NOEXCEPT {

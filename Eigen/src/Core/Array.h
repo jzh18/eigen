@@ -119,15 +119,6 @@ class Array : public PlainObjectBase<Array<Scalar_, Rows_, Cols_, Options_, MaxR
    */
   EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Array() : Base() { EIGEN_INITIALIZE_COEFFS_IF_THAT_OPTION_IS_ENABLED }
 
-#ifndef EIGEN_PARSED_BY_DOXYGEN
-  // FIXME is it still needed ??
-  /** \internal */
-  EIGEN_DEVICE_FUNC Array(internal::constructor_without_unaligned_array_assert)
-      : Base(internal::constructor_without_unaligned_array_assert()) {
-    EIGEN_INITIALIZE_COEFFS_IF_THAT_OPTION_IS_ENABLED
-  }
-#endif
-
   EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr Array(Array&&) = default;
   EIGEN_DEVICE_FUNC Array& operator=(Array&& other) EIGEN_NOEXCEPT_IF(std::is_nothrow_move_assignable<Scalar>::value) {
     Base::operator=(std::move(other));

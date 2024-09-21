@@ -27,30 +27,11 @@ namespace Eigen {
 
 namespace internal {
 
-struct constructor_without_unaligned_array_assert {};
-
 template <typename T, int Size>
-EIGEN_DEVICE_FUNC constexpr void check_static_allocation_size() {
-// if EIGEN_STACK_ALLOCATION_LIMIT is defined to 0, then no limit
+struct check_static_allocation_size {
 #if EIGEN_STACK_ALLOCATION_LIMIT
   EIGEN_STATIC_ASSERT(Size * sizeof(T) <= EIGEN_STACK_ALLOCATION_LIMIT, OBJECT_ALLOCATED_ON_STACK_IS_TOO_BIG);
 #endif
-}
-
-/** \internal
- * Static array. If the MatrixOrArrayOptions require auto-alignment, the array will be automatically aligned:
- * to 16 bytes boundary if the total size is a multiple of 16 bytes.
- */
-template <typename T, int Size, int MatrixOrArrayOptions,
-          int Alignment = (MatrixOrArrayOptions & DontAlign) ? 0 : compute_default_alignment<T, Size>::value>
-struct plain_array {
-  T array[Size];
-
-  EIGEN_DEVICE_FUNC constexpr plain_array() { check_static_allocation_size<T, Size>(); }
-
-  EIGEN_DEVICE_FUNC constexpr plain_array(constructor_without_unaligned_array_assert) {
-    check_static_allocation_size<T, Size>();
-  }
 };
 
 #if defined(EIGEN_DISABLE_UNALIGNED_ARRAY_ASSERT)
@@ -63,67 +44,31 @@ struct plain_array {
                " **** READ THIS WEB PAGE !!! ****");
 #endif
 
-template <typename T, int Size, int MatrixOrArrayOptions>
-struct plain_array<T, Size, MatrixOrArrayOptions, 8> {
-  EIGEN_ALIGN_TO_BOUNDARY(8) T array[Size];
-
-  EIGEN_DEVICE_FUNC constexpr plain_array() {
-    EIGEN_MAKE_UNALIGNED_ARRAY_ASSERT(7);
-    check_static_allocation_size<T, Size>();
-  }
-
-  EIGEN_DEVICE_FUNC constexpr plain_array(constructor_without_unaligned_array_assert) {
-    check_static_allocation_size<T, Size>();
-  }
+/** \internal
+ * Static array. If the MatrixOrArrayOptions require auto-alignment, the array will be automatically aligned:
+ * to 16 bytes boundary if the total size is a multiple of 16 bytes.
+ */
+template <typename T, int Size, int MatrixOrArrayOptions,
+          int Alignment = (MatrixOrArrayOptions & DontAlign) ? 0 : compute_default_alignment<T, Size>::value>
+struct plain_array : check_static_allocation_size<T, Size> {
+  EIGEN_ALIGN_TO_BOUNDARY(Alignment) T array[Size];
+#if defined(EIGEN_NO_DEBUG) || defined(EIGEN_DISABLE_UNALIGNED_ARRAY_ASSERT)
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr plain_array() = default;
+#else
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr plain_array() { EIGEN_MAKE_UNALIGNED_ARRAY_ASSERT(Alignment - 1); }
+#endif
 };
 
 template <typename T, int Size, int MatrixOrArrayOptions>
-struct plain_array<T, Size, MatrixOrArrayOptions, 16> {
-  EIGEN_ALIGN_TO_BOUNDARY(16) T array[Size];
-
-  EIGEN_DEVICE_FUNC constexpr plain_array() {
-    EIGEN_MAKE_UNALIGNED_ARRAY_ASSERT(15);
-    check_static_allocation_size<T, Size>();
-  }
-
-  EIGEN_DEVICE_FUNC constexpr plain_array(constructor_without_unaligned_array_assert) {
-    check_static_allocation_size<T, Size>();
-  }
-};
-
-template <typename T, int Size, int MatrixOrArrayOptions>
-struct plain_array<T, Size, MatrixOrArrayOptions, 32> {
-  EIGEN_ALIGN_TO_BOUNDARY(32) T array[Size];
-
-  EIGEN_DEVICE_FUNC constexpr plain_array() {
-    EIGEN_MAKE_UNALIGNED_ARRAY_ASSERT(31);
-    check_static_allocation_size<T, Size>();
-  }
-
-  EIGEN_DEVICE_FUNC constexpr plain_array(constructor_without_unaligned_array_assert) {
-    check_static_allocation_size<T, Size>();
-  }
-};
-
-template <typename T, int Size, int MatrixOrArrayOptions>
-struct plain_array<T, Size, MatrixOrArrayOptions, 64> {
-  EIGEN_ALIGN_TO_BOUNDARY(64) T array[Size];
-
-  EIGEN_DEVICE_FUNC constexpr plain_array() {
-    EIGEN_MAKE_UNALIGNED_ARRAY_ASSERT(63);
-    check_static_allocation_size<T, Size>();
-  }
-
-  EIGEN_DEVICE_FUNC constexpr plain_array(constructor_without_unaligned_array_assert) {
-    check_static_allocation_size<T, Size>();
-  }
+struct plain_array<T, Size, MatrixOrArrayOptions, 0> : check_static_allocation_size<T, Size> {
+  T array[Size];
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr plain_array() = default;
 };
 
 template <typename T, int MatrixOrArrayOptions, int Alignment>
 struct plain_array<T, 0, MatrixOrArrayOptions, Alignment> {
   T array[1];
-  EIGEN_DEVICE_FUNC constexpr plain_array() {}
-  EIGEN_DEVICE_FUNC constexpr plain_array(constructor_without_unaligned_array_assert) {}
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr plain_array() = default;
 };
 
 struct plain_array_helper {
@@ -181,8 +126,6 @@ class DenseStorage {
 #else
   EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr DenseStorage() = default;
 #endif
-  EIGEN_DEVICE_FUNC explicit constexpr DenseStorage(internal::constructor_without_unaligned_array_assert)
-      : m_data(internal::constructor_without_unaligned_array_assert()) {}
 #if defined(EIGEN_DENSE_STORAGE_CTOR_PLUGIN)
   EIGEN_DEVICE_FUNC constexpr DenseStorage(const DenseStorage& other) : m_data(other.m_data) {
     EIGEN_INTERNAL_DENSE_STORAGE_CTOR_PLUGIN(Index size = Size)
@@ -215,7 +158,6 @@ class DenseStorage<T, 0, Rows_, Cols_, Options_> {
  public:
   static_assert(Rows_ * Cols_ == 0, "The fixed number of rows times columns must equal the storage size.");
   EIGEN_DEVICE_FUNC constexpr DenseStorage() {}
-  EIGEN_DEVICE_FUNC explicit constexpr DenseStorage(internal::constructor_without_unaligned_array_assert) {}
   EIGEN_DEVICE_FUNC constexpr DenseStorage(const DenseStorage&) {}
   EIGEN_DEVICE_FUNC constexpr DenseStorage& operator=(const DenseStorage&) { return *this; }
   EIGEN_DEVICE_FUNC constexpr DenseStorage(Index, Index, Index) {}
@@ -236,7 +178,6 @@ class DenseStorage<T, 0, Dynamic, Dynamic, Options_> {
 
  public:
   EIGEN_DEVICE_FUNC DenseStorage() : m_rows(0), m_cols(0) {}
-  EIGEN_DEVICE_FUNC explicit DenseStorage(internal::constructor_without_unaligned_array_assert) : DenseStorage() {}
   EIGEN_DEVICE_FUNC DenseStorage(const DenseStorage& other) : m_rows(other.m_rows), m_cols(other.m_cols) {}
   EIGEN_DEVICE_FUNC DenseStorage& operator=(const DenseStorage& other) {
     m_rows = other.m_rows;
@@ -272,7 +213,6 @@ class DenseStorage<T, 0, Rows_, Dynamic, Options_> {
 
  public:
   EIGEN_DEVICE_FUNC DenseStorage() : m_cols(0) {}
-  EIGEN_DEVICE_FUNC explicit DenseStorage(internal::constructor_without_unaligned_array_assert) : DenseStorage() {}
   EIGEN_DEVICE_FUNC DenseStorage(const DenseStorage& other) : m_cols(other.m_cols) {}
   EIGEN_DEVICE_FUNC DenseStorage& operator=(const DenseStorage& other) {
     m_cols = other.m_cols;
@@ -302,7 +242,6 @@ class DenseStorage<T, 0, Dynamic, Cols_, Options_> {
 
  public:
   EIGEN_DEVICE_FUNC DenseStorage() : m_rows(0) {}
-  EIGEN_DEVICE_FUNC explicit DenseStorage(internal::constructor_without_unaligned_array_assert) : DenseStorage() {}
   EIGEN_DEVICE_FUNC DenseStorage(const DenseStorage& other) : m_rows(other.m_rows) {}
   EIGEN_DEVICE_FUNC DenseStorage& operator=(const DenseStorage& other) {
     m_rows = other.m_rows;
@@ -335,10 +274,7 @@ class DenseStorage<T, Size, Dynamic, Dynamic, Options_> {
 
  public:
   EIGEN_DEVICE_FUNC constexpr DenseStorage() : m_data(), m_rows(0), m_cols(0) {}
-  EIGEN_DEVICE_FUNC explicit constexpr DenseStorage(internal::constructor_without_unaligned_array_assert)
-      : m_data(internal::constructor_without_unaligned_array_assert()), m_rows(0), m_cols(0) {}
-  EIGEN_DEVICE_FUNC constexpr DenseStorage(const DenseStorage& other)
-      : m_data(internal::constructor_without_unaligned_array_assert()), m_rows(other.m_rows), m_cols(other.m_cols) {
+  EIGEN_DEVICE_FUNC constexpr DenseStorage(const DenseStorage& other) : m_rows(other.m_rows), m_cols(other.m_cols) {
     internal::plain_array_helper::copy(other.m_data, m_rows * m_cols, m_data);
   }
   EIGEN_DEVICE_FUNC DenseStorage& operator=(const DenseStorage& other) {
@@ -377,10 +313,7 @@ class DenseStorage<T, Size, Dynamic, Cols_, Options_> {
 
  public:
   EIGEN_DEVICE_FUNC constexpr DenseStorage() : m_rows(0) {}
-  EIGEN_DEVICE_FUNC explicit constexpr DenseStorage(internal::constructor_without_unaligned_array_assert)
-      : m_data(internal::constructor_without_unaligned_array_assert()), m_rows(0) {}
-  EIGEN_DEVICE_FUNC constexpr DenseStorage(const DenseStorage& other)
-      : m_data(internal::constructor_without_unaligned_array_assert()), m_rows(other.m_rows) {
+  EIGEN_DEVICE_FUNC constexpr DenseStorage(const DenseStorage& other) : m_rows(other.m_rows) {
     internal::plain_array_helper::copy(other.m_data, m_rows * Cols_, m_data);
   }
 
@@ -412,10 +345,7 @@ class DenseStorage<T, Size, Rows_, Dynamic, Options_> {
 
  public:
   EIGEN_DEVICE_FUNC constexpr DenseStorage() : m_cols(0) {}
-  EIGEN_DEVICE_FUNC explicit constexpr DenseStorage(internal::constructor_without_unaligned_array_assert)
-      : m_data(internal::constructor_without_unaligned_array_assert()), m_cols(0) {}
-  EIGEN_DEVICE_FUNC constexpr DenseStorage(const DenseStorage& other)
-      : m_data(internal::constructor_without_unaligned_array_assert()), m_cols(other.m_cols) {
+  EIGEN_DEVICE_FUNC constexpr DenseStorage(const DenseStorage& other) : m_cols(other.m_cols) {
     internal::plain_array_helper::copy(other.m_data, Rows_ * m_cols, m_data);
   }
   EIGEN_DEVICE_FUNC DenseStorage& operator=(const DenseStorage& other) {
@@ -447,8 +377,6 @@ class DenseStorage<T, Dynamic, Dynamic, Dynamic, Options_> {
 
  public:
   EIGEN_DEVICE_FUNC constexpr DenseStorage() : m_data(0), m_rows(0), m_cols(0) {}
-  EIGEN_DEVICE_FUNC explicit constexpr DenseStorage(internal::constructor_without_unaligned_array_assert)
-      : m_data(0), m_rows(0), m_cols(0) {}
   EIGEN_DEVICE_FUNC DenseStorage(Index size, Index rows, Index cols)
       : m_data(internal::conditional_aligned_new_auto<T, (Options_ & DontAlign) == 0>(size)),
         m_rows(rows),
@@ -523,7 +451,6 @@ class DenseStorage<T, Dynamic, Rows_, Dynamic, Options_> {
 
  public:
   EIGEN_DEVICE_FUNC constexpr DenseStorage() : m_data(0), m_cols(0) {}
-  explicit constexpr DenseStorage(internal::constructor_without_unaligned_array_assert) : m_data(0), m_cols(0) {}
   EIGEN_DEVICE_FUNC DenseStorage(Index size, Index rows, Index cols)
       : m_data(internal::conditional_aligned_new_auto<T, (Options_ & DontAlign) == 0>(size)), m_cols(cols) {
     EIGEN_INTERNAL_DENSE_STORAGE_CTOR_PLUGIN({})
@@ -590,7 +517,6 @@ class DenseStorage<T, Dynamic, Dynamic, Cols_, Options_> {
 
  public:
   EIGEN_DEVICE_FUNC constexpr DenseStorage() : m_data(0), m_rows(0) {}
-  explicit constexpr DenseStorage(internal::constructor_without_unaligned_array_assert) : m_data(0), m_rows(0) {}
   EIGEN_DEVICE_FUNC constexpr DenseStorage(Index size, Index rows, Index cols)
       : m_data(internal::conditional_aligned_new_auto<T, (Options_ & DontAlign) == 0>(size)), m_rows(rows) {
     EIGEN_INTERNAL_DENSE_STORAGE_CTOR_PLUGIN({})
