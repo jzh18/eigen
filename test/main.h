@@ -142,9 +142,13 @@ struct imag {};
 static long int nb_temporaries;
 static long int nb_temporaries_on_assert = -1;
 
+#ifndef TEST_ENABLE_STACK_ALLOCATED_TEMPORARY_TRACKING
 inline void on_temporary_creation(long int size, int SizeAtCompileTime) {
   // ignore stack-allocated temporaries
   if (SizeAtCompileTime != -1) return;
+#else
+inline void on_temporary_creation(long int size, int) {
+#endif
   // here's a great place to set a breakpoint when debugging failures in this test!
   if (size != 0) nb_temporaries++;
   if (nb_temporaries_on_assert > 0) assert(nb_temporaries < nb_temporaries_on_assert);
