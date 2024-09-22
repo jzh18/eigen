@@ -9,7 +9,6 @@
 // with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 #define TEST_ENABLE_TEMPORARY_TRACKING
-#define TEST_ENABLE_STACK_ALLOCATED_TEMPORARY_TRACKING
 
 #include "main.h"
 

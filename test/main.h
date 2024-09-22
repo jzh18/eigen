@@ -142,7 +142,7 @@ struct imag {};
 static long int nb_temporaries;
 static long int nb_temporaries_on_assert = -1;
 
-#ifndef TEST_ENABLE_STACK_ALLOCATED_TEMPORARY_TRACKING
+#ifdef TEST_IGNORE_STACK_ALLOCATED_TEMPORARY
 inline void on_temporary_creation(long int size, int SizeAtCompileTime) {
   // ignore stack-allocated temporaries
   if (SizeAtCompileTime != -1) return;
