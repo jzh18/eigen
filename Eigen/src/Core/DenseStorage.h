@@ -96,52 +96,70 @@ struct plain_array_helper {
   }
 };
 
-// these classes are intended to be inherited by DenseStorage to take advantage of empty base optimization
-template <int Rows>
-struct DenseStorageRowIndex {
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr DenseStorageRowIndex() = default;
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr DenseStorageRowIndex(const DenseStorageRowIndex&) = default;
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr DenseStorageRowIndex(DenseStorageRowIndex&&) = default;
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr DenseStorageRowIndex(Index /*rows*/) {}
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr Index getRows() const { return Rows; }
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE void setRows(Index /*rows*/) {}
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE void swapRows(DenseStorageRowIndex&) noexcept {}
+// this class is intended to be inherited by DenseStorage to take advantage of empty base optimization
+template <int Rows, int Cols>
+struct DenseStorageIndices {
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr DenseStorageIndices() = default;
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr DenseStorageIndices(const DenseStorageIndices&) = default;
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr DenseStorageIndices(DenseStorageIndices&&) = default;
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr DenseStorageIndices& operator=(const DenseStorageIndices&) = default;
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr DenseStorageIndices(Index /*rows*/, Index /*cols*/) {}
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr Index rows() const { return Rows; }
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr Index cols() const { return Cols; }
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr void set(Index /*rows*/, Index /*cols*/) {}
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr void swap(DenseStorageIndices& /*other*/) noexcept {}
 };
-template <>
-struct DenseStorageRowIndex<Dynamic> {
-  Index m_rows;
+template <int Rows>
+struct DenseStorageIndices<Rows, Dynamic> {
+  Index m_cols;
 
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE DenseStorageRowIndex() : m_rows(0) {}
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr DenseStorageRowIndex(const DenseStorageRowIndex&) = default;
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr DenseStorageRowIndex(DenseStorageRowIndex&&) = default;
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr DenseStorageRowIndex(Index rows) : m_rows(rows) {}
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Index getRows() const { return m_rows; }
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE void setRows(Index rows) { m_rows = rows; }
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE void swapRows(DenseStorageRowIndex& other) noexcept {
-    numext::swap(m_rows, other.m_rows);
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr DenseStorageIndices() : m_cols(0) {}
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr DenseStorageIndices(const DenseStorageIndices&) = default;
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr DenseStorageIndices(DenseStorageIndices&&) = default;
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr DenseStorageIndices& operator=(const DenseStorageIndices&) = default;
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr DenseStorageIndices(Index /*rows*/, Index cols) : m_cols(cols) {}
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr Index rows() const { return Rows; }
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr Index cols() const { return m_cols; }
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr void set(Index /*rows*/, Index cols) { m_cols = cols; }
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE void swap(DenseStorageIndices& other) noexcept {
+    numext::swap(m_cols, other.m_cols);
   }
 };
 template <int Cols>
-struct DenseStorageColIndex {
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr DenseStorageColIndex() = default;
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr DenseStorageColIndex(const DenseStorageColIndex&) = default;
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr DenseStorageColIndex(DenseStorageColIndex&&) = default;
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr DenseStorageColIndex(Index /*cols*/) {}
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr Index getCols() const { return Cols; }
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE void setCols(Index /*cols*/) {}
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE void swapCols(DenseStorageColIndex&) noexcept {}
+struct DenseStorageIndices<Dynamic, Cols> {
+  Index m_rows;
+
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr DenseStorageIndices() : m_rows(0) {}
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr DenseStorageIndices(const DenseStorageIndices&) = default;
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr DenseStorageIndices(DenseStorageIndices&&) = default;
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr DenseStorageIndices& operator=(const DenseStorageIndices&) = default;
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr DenseStorageIndices(Index rows, Index /*cols*/) : m_rows(rows) {}
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr Index rows() const { return m_rows; }
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr Index cols() const { return Cols; }
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr void set(Index rows, Index /*cols*/) { m_rows = rows; }
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE void swap(DenseStorageIndices& other) noexcept {
+    numext::swap(m_rows, other.m_rows);
+  }
 };
 template <>
-struct DenseStorageColIndex<Dynamic> {
+struct DenseStorageIndices<Dynamic, Dynamic> {
+  Index m_rows;
   Index m_cols;
 
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE DenseStorageColIndex() : m_cols(0) {}
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr DenseStorageColIndex(const DenseStorageColIndex&) = default;
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr DenseStorageColIndex(DenseStorageColIndex&&) = default;
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr DenseStorageColIndex(Index cols) : m_cols(cols) {}
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Index getCols() const { return m_cols; }
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE void setCols(Index cols) { m_cols = cols; }
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE void swapCols(DenseStorageColIndex& other) noexcept {
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr DenseStorageIndices() : m_rows(0), m_cols(0) {}
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr DenseStorageIndices(const DenseStorageIndices&) = default;
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr DenseStorageIndices(DenseStorageIndices&&) = default;
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr DenseStorageIndices& operator=(const DenseStorageIndices&) = default;
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr DenseStorageIndices(Index rows, Index cols)
+      : m_rows(rows), m_cols(cols) {}
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr Index rows() const { return m_rows; }
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr Index cols() const { return m_cols; }
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr void set(Index rows, Index cols) {
+    m_rows = rows;
+    m_cols = cols;
+  }
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE void swap(DenseStorageIndices& other) noexcept {
+    numext::swap(m_rows, other.m_rows);
     numext::swap(m_cols, other.m_cols);
   }
 };
@@ -161,13 +179,14 @@ struct DenseStorageColIndex<Dynamic> {
  * \sa Matrix
  */
 template <typename T, int Size, int Rows, int Cols, int Options>
-class DenseStorage : internal::DenseStorageRowIndex<Rows>, internal::DenseStorageColIndex<Cols> {
-  using RowBase = internal::DenseStorageRowIndex<Rows>;
-  using ColBase = internal::DenseStorageColIndex<Cols>;
+class DenseStorage : internal::DenseStorageIndices<Rows, Cols> {
+  using Base = internal::DenseStorageIndices<Rows, Cols>;
 
   internal::plain_array<T, Size, Options> m_data;
 
  public:
+  using Base::cols;
+  using Base::rows;
 #ifndef EIGEN_DENSE_STORAGE_CTOR_PLUGIN
   EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE DenseStorage() = default;
 #else
@@ -175,85 +194,78 @@ class DenseStorage : internal::DenseStorageRowIndex<Rows>, internal::DenseStorag
 #endif
   EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr DenseStorage(const DenseStorage&) = default;
   EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr DenseStorage(DenseStorage&&) = default;
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr DenseStorage& operator=(const DenseStorage&) = default;
   EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr DenseStorage(Index /*size*/, Index rows, Index cols)
-      : RowBase(rows), ColBase(cols) {}
+      : Base(rows, cols) {}
   EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr void swap(DenseStorage& other) noexcept {
     numext::swap(m_data, other.m_data);
-    swapRows(other);
-    swapCols(other);
+    Base::swap(other);
   }
   EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr void conservativeResize(Index /*size*/, Index rows, Index cols) {
-    setRows(rows);
-    setCols(cols);
+    Base::set(rows, cols);
   }
   EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr void resize(Index /*size*/, Index rows, Index cols) {
-    setRows(rows);
-    setCols(cols);
+    Base::set(rows, cols);
   }
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr Index rows() const { return getRows(); }
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr Index cols() const { return getCols(); }
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE T* data() { return m_data.array; }
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE const T* data() const { return m_data.array; }
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr T* data() { return m_data.array; }
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr const T* data() const { return m_data.array; }
 };
 // null matrix specialization
 template <typename T, int Rows, int Cols, int Options>
-class DenseStorage<T, 0, Rows, Cols, Options> : internal::DenseStorageRowIndex<Rows>,
-                                                internal::DenseStorageColIndex<Cols> {
-  using RowBase = internal::DenseStorageRowIndex<Rows>;
-  using ColBase = internal::DenseStorageColIndex<Cols>;
+class DenseStorage<T, 0, Rows, Cols, Options> : internal::DenseStorageIndices<Rows, Cols> {
+  using Base = internal::DenseStorageIndices<Rows, Cols>;
 
  public:
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE DenseStorage() = default;
+  using Base::cols;
+  using Base::rows;
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr DenseStorage() = default;
   EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr DenseStorage(const DenseStorage&) = default;
   EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr DenseStorage(DenseStorage&&) = default;
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr DenseStorage& operator=(const DenseStorage&) = default;
   EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr DenseStorage(Index /*size*/, Index rows, Index cols)
-      : RowBase(rows), ColBase(cols) {}
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr void swap(DenseStorage& other) noexcept {
-    swapRows(other);
-    swapCols(other);
-  }
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr void conservativeResize(Index size, Index rows, Index cols) {
-    setRows(rows);
-    setCols(cols);
+      : Base(rows, cols) {}
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr void swap(DenseStorage& other) noexcept { Base::swap(other); }
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr void conservativeResize(Index /*size*/, Index rows, Index cols) {
+    Base::set(rows, cols);
   }
   EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr void resize(Index /*size*/, Index rows, Index cols) {
-    setRows(rows);
-    setCols(cols);
+    Base::set(rows, cols);
   }
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr Index rows() const { return getRows(); }
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr Index cols() const { return getCols(); }
   EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr T* data() { return nullptr; }
   EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr const T* data() const { return nullptr; }
 };
 // dynamic matrix specialization
 template <typename T, int Rows, int Cols, int Options>
-class DenseStorage<T, Dynamic, Rows, Cols, Options> : internal::DenseStorageRowIndex<Rows>,
-                                                      internal::DenseStorageColIndex<Cols> {
-  using RowBase = internal::DenseStorageRowIndex<Rows>;
-  using ColBase = internal::DenseStorageColIndex<Cols>;
+class DenseStorage<T, Dynamic, Rows, Cols, Options> : internal::DenseStorageIndices<Rows, Cols> {
+  using Base = internal::DenseStorageIndices<Rows, Cols>;
   static constexpr int Size = Dynamic;
   static constexpr bool Align = (Options & DontAlign) == 0;
 
   T* m_data;
 
  public:
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE DenseStorage() : m_data(nullptr) {}
+  using Base::cols;
+  using Base::rows;
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr DenseStorage() : m_data(nullptr) {}
   EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr DenseStorage(const DenseStorage&) = default;
   EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr DenseStorage(DenseStorage&&) = default;
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr DenseStorage& operator=(const DenseStorage&) = default;
   EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr DenseStorage(Index size, Index rows, Index cols)
-      : m_data(internal::conditional_aligned_new_auto<T, Align>(size)), RowBase(rows), ColBase(cols) {
+      : m_data(internal::conditional_aligned_new_auto<T, Align>(size)), Base(rows, cols) {
     EIGEN_INTERNAL_DENSE_STORAGE_CTOR_PLUGIN({})
+  }
+  EIGEN_DEVICE_FUNC ~DenseStorage() {
+    Index size = this->rows() * this->cols();
+    internal::conditional_aligned_delete_auto<T, Align>(m_data, size);
   }
   EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr void swap(DenseStorage& other) noexcept {
     numext::swap(m_data, other.m_data);
-    swapRows(other);
-    swapCols(other);
+    Base::swap(other);
   }
   EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr void conservativeResize(Index size, Index rows, Index cols) {
     Index oldSize = this->rows() * this->cols();
     m_data = internal::conditional_aligned_realloc_new_auto<T, Align>(m_data, size, oldSize);
-    setRows(rows);
-    setCols(cols);
+    Base::set(rows, cols);
   }
   EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr void resize(Index size, Index rows, Index cols) {
     Index oldSize = this->rows() * this->cols();
@@ -266,13 +278,10 @@ class DenseStorage<T, Dynamic, Rows, Cols, Options> : internal::DenseStorageRowI
       } else
         m_data = nullptr;
     }
-    setRows(rows);
-    setCols(cols);
+    Base::set(rows, cols);
   }
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr Index rows() const { return getRows(); }
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr Index cols() const { return getCols(); }
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE T* data() { return m_data; }
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE const T* data() const { return m_data; }
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr T* data() { return m_data; }
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr const T* data() const { return m_data; }
 };
 }  // end namespace Eigen
 
