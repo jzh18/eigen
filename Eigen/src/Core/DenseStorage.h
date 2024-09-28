@@ -251,7 +251,7 @@ class DenseStorage<T, Dynamic, Rows, Cols, Options> : internal::DenseStorageIndi
   EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr DenseStorage(DenseStorage&&) = default;
   EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr DenseStorage& operator=(const DenseStorage&) = default;
   EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr DenseStorage(Index size, Index rows, Index cols)
-      : m_data(internal::conditional_aligned_new_auto<T, Align>(size)), Base(rows, cols) {
+      : Base(rows, cols), m_data(internal::conditional_aligned_new_auto<T, Align>(size)) {
     EIGEN_INTERNAL_DENSE_STORAGE_CTOR_PLUGIN({})
   }
   EIGEN_DEVICE_FUNC ~DenseStorage() {
