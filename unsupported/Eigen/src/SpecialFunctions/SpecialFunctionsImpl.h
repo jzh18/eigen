@@ -347,8 +347,7 @@ struct erf_impl<double> {
  ****************************************************************************/
 template <typename T>
 EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE T generic_fast_erfc_float(const T& a) {
-  const T x = pmin(pset1<T>(10.0f), pabs(a));
-  const T x2 = pmul(x, x);
+  const T x = pmin(pabs(a), pset1<T>(10.0f));
   const T zero = pset1<T>(0.0f);
   const T one = pset1<T>(1.0f);
   const T two = pset1<T>(2.0f);
@@ -363,6 +362,7 @@ EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE T generic_fast_erfc_float(const T& a) {
   constexpr float alpha[] = {5.61802298761904239654541015625e-04, -4.91381669417023658752441406250e-03,
                              2.67075151205062866210937500000e-02, -1.12800106406211853027343750000e-01,
                              3.76122951507568359375000000000e-01, -1.12837910652160644531250000000e+00};
+  const T x2 = pmul(x, x);
   const T erfc_small = padd(one, pmul(a, ppolevl<T, 5>::run(x2, alpha)));
 
   // Return early if we don't need the more expensive approximation for any
