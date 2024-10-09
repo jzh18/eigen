@@ -346,13 +346,10 @@ struct erf_impl<double> {
  * Implementation of erfc, requires C++11/C99                               *
  ****************************************************************************/
 template <typename T>
-EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE T generic_fast_erfc_float(const T& a) {
-  const T x = pmin(pabs(a), pset1<T>(10.0f));
-  const T zero = pset1<T>(0.0f);
+EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE T generic_fast_erfc_float(const T& x) {
+  const T x_abs = pmin(pabs(x), pset1<T>(10.0f));
   const T one = pset1<T>(1.0f);
-  const T two = pset1<T>(2.0f);
-  const T a_negative = pcmp_lt(a, zero);
-  const T x_gt_one_mask = pcmp_lt(one, x);
+  const T x_abs_gt_one_mask = pcmp_lt(one, x_abs);
 
   // erfc(x) = 1 + x * S(x^2), |x| <= 1.
   //
@@ -363,13 +360,13 @@ EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE T generic_fast_erfc_float(const T& a) {
                              2.67075151205062866210937500000e-02, -1.12800106406211853027343750000e-01,
                              3.76122951507568359375000000000e-01, -1.12837910652160644531250000000e+00};
   const T x2 = pmul(x, x);
-  const T erfc_small = padd(one, pmul(a, ppolevl<T, 5>::run(x2, alpha)));
+  const T erfc_small = pmadd(x, ppolevl<T, 5>::run(x2, alpha), one);
 
   // Return early if we don't need the more expensive approximation for any
   // entry in a.
-  if (!predux_any(x_gt_one_mask)) return erfc_small;
+  if (!predux_any(x_abs_gt_one_mask)) return erfc_small;
 
-  // erfc(x) = exp(-x^2) / x * P(1/x^2) / Q(1/x^2), 1 < x < 9.
+  // erfc(x) = exp(-x^2) * 1/x * P(1/x^2) / Q(1/x^2), 1 < x < 9.
   //
   // Coefficients for P and Q generated with Rminimax command:
   //   ./ratapprox --function="erfc(1/sqrt(x))*exp(1/x)/sqrt(x)"
@@ -381,12 +378,15 @@ EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE T generic_fast_erfc_float(const T& a) {
                              1.0000000000000000000000000e+00f, 6.2173241376876831054687500e-01f,
                              9.5662862062454223632812500e-02f};
   const T z = pexp(pnegate(x2));
-  const T q = preciprocal(x);
-  const T q2 = pmul(q, q);
-  const T p = pdiv(ppolevl<T, 3>::run(q2, gamma), ppolevl<T, 4>::run(q2, delta));
-  const T erfc_large = pmul(z, pmul(q, p));
+  const T q2 = preciprocal(x2);
+  const T num = ppolevl<T, 3>::run(q2, gamma);
+  const T denom = pmul(x_abs, ppolevl<T, 4>::run(q2, delta));
+  const T r = pdiv(num, denom);
+  // If x < -2 then use erfc(x) = 2 - erfc(|x|).
+  const T x_negative = pcmp_lt(x, pset1<T>(0.0f));
+  const T erfc_large = pselect(x_negative, pnmadd(z, r, pset1<T>(2.0f)), pmul(z, r));
 
-  return pselect(x_gt_one_mask, pselect(a_negative, psub(two, erfc_large), erfc_large), erfc_small);
+  return pselect(x_abs_gt_one_mask, erfc_large, erfc_small);
 }
 
 template <typename Scalar>
