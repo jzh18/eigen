@@ -131,8 +131,8 @@ struct digamma_impl_maybe_poly {
 template <>
 struct digamma_impl_maybe_poly<float> {
   EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE float run(const float s) {
-    const float A[] = {-4.16666666666666666667E-3f, 3.96825396825396825397E-3f, -8.33333333333333333333E-3f,
-                       8.33333333333333333333E-2f};
+    constexpr float A[] = {-4.16666666666666666667E-3f, 3.96825396825396825397E-3f, -8.33333333333333333333E-3f,
+                           8.33333333333333333333E-2f};
 
     float z;
     if (s < 1.0e8f) {
@@ -146,9 +146,9 @@ struct digamma_impl_maybe_poly<float> {
 template <>
 struct digamma_impl_maybe_poly<double> {
   EIGEN_DEVICE_FUNC static EIGEN_STRONG_INLINE double run(const double s) {
-    const double A[] = {8.33333333333333333333E-2,  -2.10927960927960927961E-2, 7.57575757575757575758E-3,
-                        -4.16666666666666666667E-3, 3.96825396825396825397E-3,  -8.33333333333333333333E-3,
-                        8.33333333333333333333E-2};
+    constexpr double A[] = {8.33333333333333333333E-2,  -2.10927960927960927961E-2, 7.57575757575757575758E-3,
+                            -4.16666666666666666667E-3, 3.96825396825396825397E-3,  -8.33333333333333333333E-3,
+                            8.33333333333333333333E-2};
 
     double z;
     if (s < 1.0e17) {
@@ -282,20 +282,14 @@ struct digamma_impl {
 template <typename T>
 EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE T generic_fast_erf_float(const T& x) {
   // The monomial coefficients of the numerator polynomial (odd).
-  const T alpha_1 = pset1<T>(1.128379106521606445312500000000000000e+00f);
-  const T alpha_3 = pset1<T>(1.874160766601562500000000000000000000e-01f);
-  const T alpha_5 = pset1<T>(5.243302136659622192382812500000000000e-02f);
-  const T alpha_7 = pset1<T>(3.658048342913389205932617187500000000e-03f);
-  const T alpha_9 = pset1<T>(2.861979592125862836837768554687500000e-04f);
-  const T alpha_11 = pset1<T>(2.123732201653183437883853912353515625e-06f);
+  constexpr float alpha[] = {2.123732201653183437883853912353515625e-06f, 2.861979592125862836837768554687500000e-04f,
+                             3.658048342913389205932617187500000000e-03f, 5.243302136659622192382812500000000000e-02f,
+                             1.874160766601562500000000000000000000e-01f, 1.128379106521606445312500000000000000e+00f};
 
   // The monomial coefficients of the denominator polynomial (even).
-  const T beta_0 = pset1<T>(1.0f);
-  const T beta_2 = pset1<T>(4.99425798654556274414062500000e-01f);
-  const T beta_4 = pset1<T>(1.12945675849914550781250000000e-01f);
-  const T beta_6 = pset1<T>(1.47520881146192550659179687500e-02f);
-  const T beta_8 = pset1<T>(1.14329601638019084930419921875e-03f);
-  const T beta_10 = pset1<T>(3.89185734093189239501953125000e-05f);
+  constexpr float beta[] = {3.89185734093189239501953125000e-05f, 1.14329601638019084930419921875e-03f,
+                            1.47520881146192550659179687500e-02f, 1.12945675849914550781250000000e-01f,
+                            4.99425798654556274414062500000e-01f, 1.0f};
 
   // Since the polynomials are odd/even, we need x^2.
   // Since erf(4) == 1 in float, we clamp x^2 to 16 to avoid
@@ -303,19 +297,11 @@ EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE T generic_fast_erf_float(const T& x) {
   const T x2 = pmin(pset1<T>(16.0f), pmul(x, x));
 
   // Evaluate the numerator polynomial p.
-  T p = pmadd(x2, alpha_11, alpha_9);
-  p = pmadd(x2, p, alpha_7);
-  p = pmadd(x2, p, alpha_5);
-  p = pmadd(x2, p, alpha_3);
-  p = pmadd(x2, p, alpha_1);
+  T p = ppolevl<T, 5>::run(x2, alpha);
   p = pmul(x, p);
 
   // Evaluate the denominator polynomial p.
-  T q = pmadd(x2, beta_10, beta_8);
-  q = pmadd(x2, q, beta_6);
-  q = pmadd(x2, q, beta_4);
-  q = pmadd(x2, q, beta_2);
-  q = pmadd(x2, q, beta_0);
+  T q = ppolevl<T, 5>::run(x2, beta);
   const T r = pdiv(p, q);
 
   // Clamp to [-1:1].
@@ -359,6 +345,49 @@ struct erf_impl<double> {
 /***************************************************************************
  * Implementation of erfc, requires C++11/C99                               *
  ****************************************************************************/
+template <typename T>
+EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE T generic_fast_erfc_float(const T& x) {
+  const T x_abs = pmin(pabs(x), pset1<T>(10.0f));
+  const T one = pset1<T>(1.0f);
+  const T x_abs_gt_one_mask = pcmp_lt(one, x_abs);
+
+  // erfc(x) = 1 + x * S(x^2), |x| <= 1.
+  //
+  // Coefficients for S and T generated with Rminimax command:
+  // ./ratapprox --function="erfc(x)-1" --dom='[-1,1]' --type=[11,0] --num="odd"
+  //   --numF="[SG]" --denF="[SG]" --log --dispCoeff="dec"
+  constexpr float alpha[] = {5.61802298761904239654541015625e-04, -4.91381669417023658752441406250e-03,
+                             2.67075151205062866210937500000e-02, -1.12800106406211853027343750000e-01,
+                             3.76122951507568359375000000000e-01, -1.12837910652160644531250000000e+00};
+  const T x2 = pmul(x, x);
+  const T erfc_small = pmadd(x, ppolevl<T, 5>::run(x2, alpha), one);
+
+  // Return early if we don't need the more expensive approximation for any
+  // entry in a.
+  if (!predux_any(x_abs_gt_one_mask)) return erfc_small;
+
+  // erfc(x) = exp(-x^2) * 1/x * P(1/x^2) / Q(1/x^2), 1 < x < 9.
+  //
+  // Coefficients for P and Q generated with Rminimax command:
+  //   ./ratapprox --function="erfc(1/sqrt(x))*exp(1/x)/sqrt(x)"
+  //     --dom='[0.01,1]' --type=[3,4] --numF="[SG]" --denF="[SG]" --log
+  //     --dispCoeff="dec"
+  constexpr float gamma[] = {1.0208116471767425537109375e-01f, 4.2920666933059692382812500e-01f,
+                             3.2379078865051269531250000e-01f, 5.3971976041793823242187500e-02f};
+  constexpr float delta[] = {1.7251677811145782470703125e-02f, 3.9137163758277893066406250e-01f,
+                             1.0000000000000000000000000e+00f, 6.2173241376876831054687500e-01f,
+                             9.5662862062454223632812500e-02f};
+  const T z = pexp(pnegate(x2));
+  const T q2 = preciprocal(x2);
+  const T num = ppolevl<T, 3>::run(q2, gamma);
+  const T denom = pmul(x_abs, ppolevl<T, 4>::run(q2, delta));
+  const T r = pdiv(num, denom);
+  // If x < -1 then use erfc(x) = 2 - erfc(|x|).
+  const T x_negative = pcmp_lt(x, pset1<T>(0.0f));
+  const T erfc_large = pselect(x_negative, pnmadd(z, r, pset1<T>(2.0f)), pmul(z, r));
+
+  return pselect(x_abs_gt_one_mask, erfc_large, erfc_small);
+}
 
 template <typename Scalar>
 struct erfc_impl {
@@ -379,7 +408,7 @@ struct erfc_impl<float> {
 #if defined(SYCL_DEVICE_ONLY)
     return cl::sycl::erfc(x);
 #else
-    return ::erfcf(x);
+    return generic_fast_erfc_float(x);
 #endif
   }
 };
