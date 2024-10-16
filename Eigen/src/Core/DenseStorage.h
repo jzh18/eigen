@@ -254,7 +254,7 @@ class DenseStorage<T, Size, Rows, Cols, Options, false> : internal::DenseStorage
     std::swap_ranges(m_data.array, m_data.array + commonSize, other.m_data.array);
     if (thisSize > otherSize)
       internal::smart_move(m_data.array + commonSize, m_data.array + thisSize, other.m_data.array + commonSize);
-    else
+    else if (otherSize > thisSize)
       internal::smart_move(other.m_data.array + commonSize, other.m_data.array + otherSize, m_data.array + commonSize);
     Base::swap(other);
   }
