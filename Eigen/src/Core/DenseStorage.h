@@ -167,7 +167,11 @@ struct use_trivial_ctors {
  */
 template <typename T, int Size, int Rows, int Cols, int Options,
           bool Trivial = internal::use_trivial_ctors<Size, Rows, Cols>::value>
-class DenseStorage : internal::DenseStorageIndices<Rows, Cols> {
+class DenseStorage;
+
+// fixed-size storage with fixed dimensions
+template <typename T, int Size, int Rows, int Cols, int Options>
+class DenseStorage<T, Size, Rows, Cols, Options, true> : internal::DenseStorageIndices<Rows, Cols> {
   using Base = internal::DenseStorageIndices<Rows, Cols>;
 
   internal::plain_array<T, Size, Options> m_data;
