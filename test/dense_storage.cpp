@@ -20,7 +20,7 @@
 
 #include <Eigen/Core>
 
-using DenseStorageD3x3 = Eigen::DenseStorage<double, 3, 3, 3, 3>;
+using DenseStorageD3x3 = Eigen::DenseStorage<double, 9, 3, 3, 0>;
 static_assert(std::is_trivially_move_constructible<DenseStorageD3x3>::value,
               "DenseStorage not trivially_move_constructible");
 static_assert(std::is_trivially_move_assignable<DenseStorageD3x3>::value, "DenseStorage not trivially_move_assignable");
