@@ -31,15 +31,12 @@ static_assert(std::is_trivially_copy_assignable<DenseStorageD3x3>::value, "Dense
 static_assert(std::is_trivially_copyable<DenseStorageD3x3>::value, "DenseStorage not trivially_copyable");
 #endif
 
-static_assert(std::is_trivially_move_constructible<Matrix4f>::value,
-              "Matrix4f not trivially_move_constructible");
+static_assert(std::is_trivially_move_constructible<Matrix4f>::value, "Matrix4f not trivially_move_constructible");
 #if !defined(EIGEN_DENSE_STORAGE_CTOR_PLUGIN)
-static_assert(std::is_trivially_copy_constructible<Matrix4f>::value,
-              "Matrix4f not trivially_copy_constructible");
+static_assert(std::is_trivially_copy_constructible<Matrix4f>::value, "Matrix4f not trivially_copy_constructible");
 #endif
 #if defined(EIGEN_DISABLE_UNALIGNED_ARRAY_ASSERT)
-static_assert(std::is_trivially_default_constructible<Matrix4f>::value,
-              "Matrix4f not trivially_copy_constructible");
+static_assert(std::is_trivially_default_constructible<Matrix4f>::value, "Matrix4f not trivially_copy_constructible");
 #endif
 
 template <typename T, int Size, int Rows, int Cols>
