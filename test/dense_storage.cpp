@@ -36,7 +36,7 @@ static_assert(std::is_trivially_move_constructible<Matrix4f>::value, "Matrix4f n
 static_assert(std::is_trivially_copy_constructible<Matrix4f>::value, "Matrix4f not trivially_copy_constructible");
 #endif
 #if defined(EIGEN_DISABLE_UNALIGNED_ARRAY_ASSERT)
-static_assert(std::is_trivially_default_constructible<Matrix4f>::value, "Matrix4f not trivially_copy_constructible");
+static_assert(std::is_trivially_default_constructible<Matrix4f>::value, "Matrix4f not trivially_default_constructible");
 #endif
 
 template <typename T, int Size, int Rows, int Cols>
