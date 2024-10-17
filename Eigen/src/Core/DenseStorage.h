@@ -196,7 +196,7 @@ class DenseStorage<T, Size, Rows, Cols, Options, true> : internal::DenseStorageI
     EIGEN_INTERNAL_DENSE_STORAGE_CTOR_PLUGIN({})
     EIGEN_UNUSED_VARIABLE(size);
   }
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr void swap(DenseStorage& other) noexcept {
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr void swap(DenseStorage& other) {
     numext::swap(m_data, other.m_data);
     Base::swap(other);
   }
@@ -220,15 +220,14 @@ class DenseStorage<T, Size, Rows, Cols, Options, false> : internal::DenseStorage
   using Base::cols;
   using Base::rows;
   EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE DenseStorage() = default;
+#ifndef EIGEN_DENSE_STORAGE_CTOR_PLUGIN
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr DenseStorage(const DenseStorage&) = default;
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr DenseStorage& operator=(const DenseStorage&) = default;
+#else
   EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr DenseStorage(const DenseStorage& other) : Base(other), m_data() {
     Index size = other.size();
     EIGEN_INTERNAL_DENSE_STORAGE_CTOR_PLUGIN({})
     internal::smart_copy(other.m_data.array, other.m_data.array + size, m_data.array);
-  }
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr DenseStorage(DenseStorage&& other) : Base(other), m_data() {
-    Index size = other.size();
-    internal::smart_move(other.m_data.array, other.m_data.array + size, m_data.array);
-    other.resize(Size, 0, 0);
   }
   EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr DenseStorage& operator=(const DenseStorage& other) {
     Base::set(other.rows(), other.cols());
@@ -236,18 +235,14 @@ class DenseStorage<T, Size, Rows, Cols, Options, false> : internal::DenseStorage
     internal::smart_copy(other.m_data.array, other.m_data.array + size, m_data.array);
     return *this;
   }
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr DenseStorage& operator=(DenseStorage&& other) {
-    Base::set(other.rows(), other.cols());
-    Index size = other.size();
-    internal::smart_move(other.m_data.array, other.m_data.array + size, m_data.array);
-    other.resize(Size, 0, 0);
-    return *this;
-  }
+#endif
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr DenseStorage(DenseStorage&&) = default;
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr DenseStorage& operator=(DenseStorage&&) = default;
   EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr DenseStorage(Index size, Index rows, Index cols) : Base(rows, cols) {
     EIGEN_INTERNAL_DENSE_STORAGE_CTOR_PLUGIN({})
     EIGEN_UNUSED_VARIABLE(size);
   }
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr void swap(DenseStorage& other) noexcept {
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr void swap(DenseStorage& other) {
     Index thisSize = this->size();
     Index otherSize = other.size();
     Index commonSize = numext::mini(thisSize, otherSize);

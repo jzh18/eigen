@@ -339,7 +339,7 @@ static std::vector<std::string> eigen_assert_list;
 
 #endif  // EIGEN_NO_ASSERTION_CHECKING
 
-#ifndef EIGEN_TESTING_CONSTEXPR
+#if !defined(EIGEN_TESTING_CONSTEXPR) && !defined(EIGEN_TESTING_PLAINOBJECT_CTOR)
 #define EIGEN_INTERNAL_DEBUGGING
 #endif
 #include <Eigen/QR>  // required for createRandomPIMatrixOfRank and generateRandomMatrixSvs
