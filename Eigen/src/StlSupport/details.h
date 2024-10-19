@@ -34,14 +34,13 @@ class aligned_allocator_indirection : public EIGEN_ALIGNED_ALLOCATOR<T> {
     typedef aligned_allocator_indirection<U> other;
   };
 
-  aligned_allocator_indirection() {}
-  aligned_allocator_indirection(const aligned_allocator_indirection&) : EIGEN_ALIGNED_ALLOCATOR<T>() {}
-  aligned_allocator_indirection(const EIGEN_ALIGNED_ALLOCATOR<T>&) {}
+  constexpr aligned_allocator_indirection() = default;
+  constexpr aligned_allocator_indirection(const aligned_allocator_indirection&) : EIGEN_ALIGNED_ALLOCATOR<T>() {}
+  constexpr aligned_allocator_indirection(const EIGEN_ALIGNED_ALLOCATOR<T>&) {}
   template <class U>
-  aligned_allocator_indirection(const aligned_allocator_indirection<U>&) {}
+  constexpr aligned_allocator_indirection(const aligned_allocator_indirection<U>&) {}
   template <class U>
-  aligned_allocator_indirection(const EIGEN_ALIGNED_ALLOCATOR<U>&) {}
-  ~aligned_allocator_indirection() {}
+  constexpr aligned_allocator_indirection(const EIGEN_ALIGNED_ALLOCATOR<U>&) {}
 };
 
 #if EIGEN_COMP_MSVC
@@ -55,16 +54,16 @@ class aligned_allocator_indirection : public EIGEN_ALIGNED_ALLOCATOR<T> {
 namespace internal {
 template <typename T>
 struct workaround_msvc_stl_support : public T {
-  inline workaround_msvc_stl_support() : T() {}
-  inline workaround_msvc_stl_support(const T& other) : T(other) {}
-  inline operator T&() { return *static_cast<T*>(this); }
-  inline operator const T&() const { return *static_cast<const T*>(this); }
+  inline constexpr workaround_msvc_stl_support() = default;
+  inline constexpr workaround_msvc_stl_support(const T& other) : T(other) {}
+  inline constexpr operator T&() { return *static_cast<T*>(this); }
+  inline constexpr operator const T&() const { return *static_cast<const T*>(this); }
   template <typename OtherT>
-  inline T& operator=(const OtherT& other) {
+  inline constexpr T& operator=(const OtherT& other) {
     T::operator=(other);
     return *this;
   }
-  inline workaround_msvc_stl_support& operator=(const workaround_msvc_stl_support& other) {
+  inline constexpr workaround_msvc_stl_support& operator=(const workaround_msvc_stl_support& other) {
     T::operator=(other);
     return *this;
   }

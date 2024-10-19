@@ -1091,32 +1091,25 @@ EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr void ignore_unused_variable(cons
 // (cf Bugs 920, 1000, 1324, 2291)
 #define EIGEN_INHERIT_ASSIGNMENT_EQUAL_OPERATOR(Derived) using Base::operator=;
 #elif EIGEN_COMP_CLANG  // workaround clang bug (see http://forum.kde.org/viewtopic.php?f=74&t=102653)
-#define EIGEN_INHERIT_ASSIGNMENT_EQUAL_OPERATOR(Derived)                                           \
-  using Base::operator=;                                                                           \
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Derived& operator=(const Derived& other) {                 \
-    Base::operator=(other);                                                                        \
-    return *this;                                                                                  \
-  }                                                                                                \
-  template <typename OtherDerived>                                                                 \
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Derived& operator=(const DenseBase<OtherDerived>& other) { \
-    Base::operator=(other.derived());                                                              \
-    return *this;                                                                                  \
+#define EIGEN_INHERIT_ASSIGNMENT_EQUAL_OPERATOR(Derived)                                                     \
+  using Base::operator=;                                                                                     \
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr Derived& operator=(const Derived& other) {                 \
+    Base::operator=(other);                                                                                  \
+    return *this;                                                                                            \
+  }                                                                                                          \
+  template <typename OtherDerived>                                                                           \
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr Derived& operator=(const DenseBase<OtherDerived>& other) { \
+    Base::operator=(other.derived());                                                                        \
+    return *this;                                                                                            \
   }
 #else
-#define EIGEN_INHERIT_ASSIGNMENT_EQUAL_OPERATOR(Derived)                           \
-  using Base::operator=;                                                           \
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Derived& operator=(const Derived& other) { \
-    Base::operator=(other);                                                        \
-    return *this;                                                                  \
+#define EIGEN_INHERIT_ASSIGNMENT_EQUAL_OPERATOR(Derived)                                     \
+  using Base::operator=;                                                                     \
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr Derived& operator=(const Derived& other) { \
+    Base::operator=(other);                                                                  \
+    return *this;                                                                            \
   }
 #endif
-
-/**
- * \internal
- * \brief Macro to explicitly define the default copy constructor.
- * This is necessary, because the implicit definition is deprecated if the copy-assignment is overridden.
- */
-#define EIGEN_DEFAULT_COPY_CONSTRUCTOR(CLASS) EIGEN_DEVICE_FUNC CLASS(const CLASS&) = default;
 
 /** \internal
  * \brief Macro to manually inherit assignment operators.
@@ -1125,18 +1118,7 @@ EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr void ignore_unused_variable(cons
  */
 #define EIGEN_INHERIT_ASSIGNMENT_OPERATORS(Derived) \
   EIGEN_INHERIT_ASSIGNMENT_EQUAL_OPERATOR(Derived)  \
-  EIGEN_DEFAULT_COPY_CONSTRUCTOR(Derived)
-
-/** \internal
- * \brief Macro to manually define default constructors and destructors.
- * This is necessary when the copy constructor is re-defined.
- * For empty helper classes this should usually be protected, to avoid accidentally creating empty objects.
- *
- * Hiding the default destructor lead to problems in C++03 mode together with boost::multiprecision
- */
-#define EIGEN_DEFAULT_EMPTY_CONSTRUCTOR_AND_DESTRUCTOR(Derived) \
-  EIGEN_DEVICE_FUNC Derived() = default;                        \
-  EIGEN_DEVICE_FUNC ~Derived() = default;
+  EIGEN_DEVICE_FUNC constexpr Derived(const Derived&) = default;
 
 /**
  * Just a side note. Commenting within defines works only by documenting
@@ -1191,7 +1173,7 @@ EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr void ignore_unused_variable(cons
 
 #define EIGEN_MAKE_CWISE_BINARY_OP(METHOD, OPNAME)                                                                \
   template <typename OtherDerived>                                                                                \
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE const EIGEN_CWISE_BINARY_RETURN_TYPE(                                     \
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr const EIGEN_CWISE_BINARY_RETURN_TYPE(                           \
       Derived, OtherDerived, OPNAME)(METHOD)(const EIGEN_CURRENT_STORAGE_BASE_CLASS<OtherDerived>& other) const { \
     return EIGEN_CWISE_BINARY_RETURN_TYPE(Derived, OtherDerived, OPNAME)(derived(), other.derived());             \
   }
@@ -1212,7 +1194,7 @@ EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr void ignore_unused_variable(cons
 
 #define EIGEN_MAKE_SCALAR_BINARY_OP_ONTHERIGHT(METHOD, OPNAME)                                                       \
   template <typename T>                                                                                              \
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE const EIGEN_EXPR_BINARYOP_SCALAR_RETURN_TYPE(                                \
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr const EIGEN_EXPR_BINARYOP_SCALAR_RETURN_TYPE(                      \
       Derived,                                                                                                       \
       typename internal::promote_scalar_arg<Scalar EIGEN_COMMA T EIGEN_COMMA EIGEN_SCALAR_BINARY_SUPPORTED(          \
           OPNAME, Scalar, T)>::type,                                                                                 \
@@ -1226,7 +1208,7 @@ EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr void ignore_unused_variable(cons
 
 #define EIGEN_MAKE_SCALAR_BINARY_OP_ONTHELEFT(METHOD, OPNAME)                                                        \
   template <typename T>                                                                                              \
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE friend const EIGEN_SCALAR_BINARYOP_EXPR_RETURN_TYPE(                         \
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE friend constexpr const EIGEN_SCALAR_BINARYOP_EXPR_RETURN_TYPE(               \
       typename internal::promote_scalar_arg<Scalar EIGEN_COMMA T EIGEN_COMMA EIGEN_SCALAR_BINARY_SUPPORTED(          \
           OPNAME, T, Scalar)>::type,                                                                                 \
       Derived, OPNAME)(METHOD)(const T& scalar, const StorageBaseType& matrix) {                                     \
@@ -1276,10 +1258,10 @@ EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr void ignore_unused_variable(cons
 namespace Eigen {
 namespace internal {
 
-EIGEN_DEVICE_FUNC inline bool all() { return true; }
+EIGEN_DEVICE_FUNC inline constexpr bool all() { return true; }
 
 template <typename T, typename... Ts>
-EIGEN_DEVICE_FUNC bool all(T t, Ts... ts) {
+EIGEN_DEVICE_FUNC constexpr bool all(T t, Ts... ts) {
   return t && all(ts...);
 }
 

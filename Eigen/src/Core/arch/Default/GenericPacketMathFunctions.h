@@ -171,23 +171,23 @@ struct pchebevl {
 };
 
 template <typename Packet>
-EIGEN_STRONG_INLINE EIGEN_DEVICE_FUNC Packet pfrexp_generic_get_biased_exponent(const Packet& a) {
+EIGEN_STRONG_INLINE EIGEN_DEVICE_FUNC constexpr Packet pfrexp_generic_get_biased_exponent(const Packet& a) {
   typedef typename unpacket_traits<Packet>::type Scalar;
   typedef typename unpacket_traits<Packet>::integer_packet PacketI;
-  static constexpr int mantissa_bits = numext::numeric_limits<Scalar>::digits - 1;
+  constexpr int mantissa_bits = numext::numeric_limits<Scalar>::digits - 1;
   return pcast<PacketI, Packet>(plogical_shift_right<mantissa_bits>(preinterpret<PacketI>(pabs(a))));
 }
 
 // Safely applies frexp, correctly handles denormals.
 // Assumes IEEE floating point format.
 template <typename Packet>
-EIGEN_STRONG_INLINE EIGEN_DEVICE_FUNC Packet pfrexp_generic(const Packet& a, Packet& exponent) {
+EIGEN_STRONG_INLINE EIGEN_DEVICE_FUNC constexpr Packet pfrexp_generic(const Packet& a, Packet& exponent) {
   typedef typename unpacket_traits<Packet>::type Scalar;
   typedef typename make_unsigned<typename make_integer<Scalar>::type>::type ScalarUI;
-  static constexpr int TotalBits = sizeof(Scalar) * CHAR_BIT, MantissaBits = numext::numeric_limits<Scalar>::digits - 1,
-                       ExponentBits = TotalBits - MantissaBits - 1;
+  constexpr int TotalBits = sizeof(Scalar) * CHAR_BIT, MantissaBits = numext::numeric_limits<Scalar>::digits - 1,
+                ExponentBits = TotalBits - MantissaBits - 1;
 
-  EIGEN_CONSTEXPR ScalarUI scalar_sign_mantissa_mask =
+  constexpr ScalarUI scalar_sign_mantissa_mask =
       ~(((ScalarUI(1) << ExponentBits) - ScalarUI(1)) << MantissaBits);  // ~0x7f800000
   const Packet sign_mantissa_mask = pset1frombits<Packet>(static_cast<ScalarUI>(scalar_sign_mantissa_mask));
   const Packet half = pset1<Packet>(Scalar(0.5));
@@ -196,7 +196,7 @@ EIGEN_STRONG_INLINE EIGEN_DEVICE_FUNC Packet pfrexp_generic(const Packet& a, Pac
 
   // To handle denormals, normalize by multiplying by 2^(int(MantissaBits)+1).
   const Packet is_denormal = pcmp_lt(pabs(a), normal_min);
-  EIGEN_CONSTEXPR ScalarUI scalar_normalization_offset = ScalarUI(MantissaBits + 1);  // 24
+  constexpr ScalarUI scalar_normalization_offset = ScalarUI(MantissaBits + 1);  // 24
   // The following cannot be constexpr because bfloat16(uint16_t) is not constexpr.
   const Scalar scalar_normalization_factor = Scalar(ScalarUI(1) << int(scalar_normalization_offset));  // 2^24
   const Packet normalization_factor = pset1<Packet>(scalar_normalization_factor);
@@ -223,7 +223,7 @@ EIGEN_STRONG_INLINE EIGEN_DEVICE_FUNC Packet pfrexp_generic(const Packet& a, Pac
 // Safely applies ldexp, correctly handles overflows, underflows and denormals.
 // Assumes IEEE floating point format.
 template <typename Packet>
-EIGEN_STRONG_INLINE EIGEN_DEVICE_FUNC Packet pldexp_generic(const Packet& a, const Packet& exponent) {
+EIGEN_STRONG_INLINE EIGEN_DEVICE_FUNC constexpr Packet pldexp_generic(const Packet& a, const Packet& exponent) {
   // We want to return a * 2^exponent, allowing for all possible integer
   // exponents without overflowing or underflowing in intermediate
   // computations.
@@ -249,8 +249,8 @@ EIGEN_STRONG_INLINE EIGEN_DEVICE_FUNC Packet pldexp_generic(const Packet& a, con
   typedef typename unpacket_traits<Packet>::integer_packet PacketI;
   typedef typename unpacket_traits<Packet>::type Scalar;
   typedef typename unpacket_traits<PacketI>::type ScalarI;
-  static constexpr int TotalBits = sizeof(Scalar) * CHAR_BIT, MantissaBits = numext::numeric_limits<Scalar>::digits - 1,
-                       ExponentBits = TotalBits - MantissaBits - 1;
+  constexpr int TotalBits = sizeof(Scalar) * CHAR_BIT, MantissaBits = numext::numeric_limits<Scalar>::digits - 1,
+                ExponentBits = TotalBits - MantissaBits - 1;
 
   const Packet max_exponent = pset1<Packet>(Scalar((ScalarI(1) << ExponentBits) + ScalarI(MantissaBits - 1)));  // 278
   const PacketI bias = pset1<PacketI>((ScalarI(1) << (ExponentBits - 1)) - ScalarI(1));                         // 127
@@ -281,7 +281,7 @@ struct pldexp_fast_impl {
   static constexpr int TotalBits = sizeof(Scalar) * CHAR_BIT, MantissaBits = numext::numeric_limits<Scalar>::digits - 1,
                        ExponentBits = TotalBits - MantissaBits - 1;
 
-  static EIGEN_STRONG_INLINE EIGEN_DEVICE_FUNC Packet run(const Packet& a, const Packet& exponent) {
+  static EIGEN_STRONG_INLINE EIGEN_DEVICE_FUNC constexpr Packet run(const Packet& a, const Packet& exponent) {
     const Packet bias = pset1<Packet>(Scalar((ScalarI(1) << (ExponentBits - 1)) - ScalarI(1)));  // 127
     const Packet limit = pset1<Packet>(Scalar((ScalarI(1) << ExponentBits) - ScalarI(1)));       // 255
     // restrict biased exponent between 0 and 255 for float.
@@ -298,7 +298,7 @@ struct pldexp_fast_impl {
 // TODO(gonnet): Further reduce the interval allowing for lower-degree
 //               polynomial interpolants -> ... -> profit!
 template <typename Packet, bool base2>
-EIGEN_DEFINE_FUNCTION_ALLOWING_MULTIPLE_DEFINITIONS Packet plog_impl_float(const Packet _x) {
+EIGEN_DEFINE_FUNCTION_ALLOWING_MULTIPLE_DEFINITIONS constexpr Packet plog_impl_float(const Packet _x) {
   const Packet cst_1 = pset1<Packet>(1.0f);
   const Packet cst_minus_inf = pset1frombits<Packet>(static_cast<Eigen::numext::uint32_t>(0xff800000u));
   const Packet cst_pos_inf = pset1frombits<Packet>(static_cast<Eigen::numext::uint32_t>(0x7f800000u));
@@ -351,12 +351,12 @@ EIGEN_DEFINE_FUNCTION_ALLOWING_MULTIPLE_DEFINITIONS Packet plog_impl_float(const
 }
 
 template <typename Packet>
-EIGEN_DEFINE_FUNCTION_ALLOWING_MULTIPLE_DEFINITIONS Packet plog_float(const Packet _x) {
+EIGEN_DEFINE_FUNCTION_ALLOWING_MULTIPLE_DEFINITIONS constexpr Packet plog_float(const Packet _x) {
   return plog_impl_float<Packet, /* base2 */ false>(_x);
 }
 
 template <typename Packet>
-EIGEN_DEFINE_FUNCTION_ALLOWING_MULTIPLE_DEFINITIONS Packet plog2_float(const Packet _x) {
+EIGEN_DEFINE_FUNCTION_ALLOWING_MULTIPLE_DEFINITIONS constexpr Packet plog2_float(const Packet _x) {
   return plog_impl_float<Packet, /* base2 */ true>(_x);
 }
 
@@ -370,7 +370,7 @@ EIGEN_DEFINE_FUNCTION_ALLOWING_MULTIPLE_DEFINITIONS Packet plog2_float(const Pac
  * for more detail see: http://www.netlib.org/cephes/
  */
 template <typename Packet, bool base2>
-EIGEN_DEFINE_FUNCTION_ALLOWING_MULTIPLE_DEFINITIONS Packet plog_impl_double(const Packet _x) {
+EIGEN_DEFINE_FUNCTION_ALLOWING_MULTIPLE_DEFINITIONS constexpr Packet plog_impl_double(const Packet _x) {
   Packet x = _x;
 
   const Packet cst_1 = pset1<Packet>(1.0);
@@ -456,12 +456,12 @@ EIGEN_DEFINE_FUNCTION_ALLOWING_MULTIPLE_DEFINITIONS Packet plog_impl_double(cons
 }
 
 template <typename Packet>
-EIGEN_DEFINE_FUNCTION_ALLOWING_MULTIPLE_DEFINITIONS Packet plog_double(const Packet _x) {
+EIGEN_DEFINE_FUNCTION_ALLOWING_MULTIPLE_DEFINITIONS constexpr Packet plog_double(const Packet _x) {
   return plog_impl_double<Packet, /* base2 */ false>(_x);
 }
 
 template <typename Packet>
-EIGEN_DEFINE_FUNCTION_ALLOWING_MULTIPLE_DEFINITIONS Packet plog2_double(const Packet _x) {
+EIGEN_DEFINE_FUNCTION_ALLOWING_MULTIPLE_DEFINITIONS constexpr Packet plog2_double(const Packet _x) {
   return plog_impl_double<Packet, /* base2 */ true>(_x);
 }
 
@@ -469,7 +469,7 @@ EIGEN_DEFINE_FUNCTION_ALLOWING_MULTIPLE_DEFINITIONS Packet plog2_double(const Pa
     See: http://www.plunk.org/~hatch/rightway.php
  */
 template <typename Packet>
-Packet generic_plog1p(const Packet& x) {
+constexpr Packet generic_plog1p(const Packet& x) {
   typedef typename unpacket_traits<Packet>::type ScalarType;
   const Packet one = pset1<Packet>(ScalarType(1));
   Packet xp1 = padd(x, one);
@@ -484,7 +484,7 @@ Packet generic_plog1p(const Packet& x) {
     See: http://www.plunk.org/~hatch/rightway.php
  */
 template <typename Packet>
-Packet generic_expm1(const Packet& x) {
+constexpr Packet generic_expm1(const Packet& x) {
   typedef typename unpacket_traits<Packet>::type ScalarType;
   const Packet one = pset1<Packet>(ScalarType(1));
   const Packet neg_one = pset1<Packet>(ScalarType(-1));
@@ -508,7 +508,7 @@ Packet generic_expm1(const Packet& x) {
 // "exp(x) = 2^m*exp(r)" where exp(r) is in the range [-1,1).
 // exp(r) is computed using a 6th order minimax polynomial approximation.
 template <typename Packet>
-EIGEN_DEFINE_FUNCTION_ALLOWING_MULTIPLE_DEFINITIONS Packet pexp_float(const Packet _x) {
+EIGEN_DEFINE_FUNCTION_ALLOWING_MULTIPLE_DEFINITIONS constexpr Packet pexp_float(const Packet _x) {
   const Packet cst_zero = pset1<Packet>(0.0f);
   const Packet cst_one = pset1<Packet>(1.0f);
   const Packet cst_half = pset1<Packet>(0.5f);
@@ -554,7 +554,7 @@ EIGEN_DEFINE_FUNCTION_ALLOWING_MULTIPLE_DEFINITIONS Packet pexp_float(const Pack
 }
 
 template <typename Packet>
-EIGEN_DEFINE_FUNCTION_ALLOWING_MULTIPLE_DEFINITIONS Packet pexp_double(const Packet _x) {
+EIGEN_DEFINE_FUNCTION_ALLOWING_MULTIPLE_DEFINITIONS constexpr Packet pexp_double(const Packet _x) {
   Packet x = _x;
   const Packet cst_zero = pset1<Packet>(0.0);
   const Packet cst_1 = pset1<Packet>(1.0);
@@ -629,7 +629,7 @@ EIGEN_DEFINE_FUNCTION_ALLOWING_MULTIPLE_DEFINITIONS Packet pexp_double(const Pac
 //    aligned on 8-bits, and (2) replicating the storage of the bits of 2/pi.
 //  - Avoid a branch in rounding and extraction of the remaining fractional part.
 // Overall, I measured a speed up higher than x2 on x86-64.
-inline float trig_reduce_huge(float xf, Eigen::numext::int32_t* quadrant) {
+inline constexpr float trig_reduce_huge(float xf, Eigen::numext::int32_t* quadrant) {
   using Eigen::numext::int32_t;
   using Eigen::numext::int64_t;
   using Eigen::numext::uint32_t;
@@ -640,7 +640,7 @@ inline float trig_reduce_huge(float xf, Eigen::numext::int32_t* quadrant) {
 
   // 192 bits of 2/pi for Payne-Hanek reduction
   // Bits are introduced by packet of 8 to enable aligned reads.
-  static const uint32_t two_over_pi[] = {
+  constexpr uint32_t two_over_pi[] = {
       0x00000028, 0x000028be, 0x0028be60, 0x28be60db, 0xbe60db93, 0x60db9391, 0xdb939105, 0x9391054a, 0x91054a7f,
       0x054a7f09, 0x4a7f09d5, 0x7f09d5f4, 0x09d5f47d, 0xd5f47d4d, 0xf47d4d37, 0x7d4d3770, 0x4d377036, 0x377036d8,
       0x7036d8a5, 0x36d8a566, 0xd8a5664f, 0xa5664f10, 0x664f10e4, 0x4f10e410, 0x10e41000, 0xe4100000};
@@ -677,7 +677,7 @@ inline float trig_reduce_huge(float xf, Eigen::numext::int32_t* quadrant) {
 }
 
 template <bool ComputeSine, typename Packet, bool ComputeBoth = false>
-EIGEN_DEFINE_FUNCTION_ALLOWING_MULTIPLE_DEFINITIONS
+EIGEN_DEFINE_FUNCTION_ALLOWING_MULTIPLE_DEFINITIONS constexpr
 #if EIGEN_COMP_GNUC_STRICT
     __attribute__((optimize("-fno-unsafe-math-optimizations")))
 #endif
@@ -808,12 +808,12 @@ EIGEN_DEFINE_FUNCTION_ALLOWING_MULTIPLE_DEFINITIONS
 }
 
 template <typename Packet>
-EIGEN_DEFINE_FUNCTION_ALLOWING_MULTIPLE_DEFINITIONS Packet psin_float(const Packet& x) {
+EIGEN_DEFINE_FUNCTION_ALLOWING_MULTIPLE_DEFINITIONS constexpr Packet psin_float(const Packet& x) {
   return psincos_float<true>(x);
 }
 
 template <typename Packet>
-EIGEN_DEFINE_FUNCTION_ALLOWING_MULTIPLE_DEFINITIONS Packet pcos_float(const Packet& x) {
+EIGEN_DEFINE_FUNCTION_ALLOWING_MULTIPLE_DEFINITIONS constexpr Packet pcos_float(const Packet& x) {
   return psincos_float<false>(x);
 }
 
@@ -821,7 +821,7 @@ EIGEN_DEFINE_FUNCTION_ALLOWING_MULTIPLE_DEFINITIONS Packet pcos_float(const Pack
 // Reduces trigonometric arguments for double inputs where x < 15. Given an argument x and its corresponding quadrant
 // count n, the function computes and returns the reduced argument t such that x = n * pi/2 + t.
 template <typename Packet>
-Packet trig_reduce_small_double(const Packet& x, const Packet& q) {
+constexpr Packet trig_reduce_small_double(const Packet& x, const Packet& q) {
   // Pi/2 split into 2 values
   const Packet cst_pio2_a = pset1<Packet>(-1.570796325802803);
   const Packet cst_pio2_b = pset1<Packet>(-9.920935184482005e-10);
@@ -836,7 +836,7 @@ Packet trig_reduce_small_double(const Packet& x, const Packet& q) {
 // Reduces trigonometric arguments for double inputs where x < 1e14. Given an argument x and its corresponding quadrant
 // count n, the function computes and returns the reduced argument t such that x = n * pi/2 + t.
 template <typename Packet>
-Packet trig_reduce_medium_double(const Packet& x, const Packet& q_high, const Packet& q_low) {
+constexpr Packet trig_reduce_medium_double(const Packet& x, const Packet& q_high, const Packet& q_low) {
   // Pi/2 split into 4 values
   const Packet cst_pio2_a = pset1<Packet>(-1.570796325802803);
   const Packet cst_pio2_b = pset1<Packet>(-9.920935184482005e-10);
@@ -855,7 +855,7 @@ Packet trig_reduce_medium_double(const Packet& x, const Packet& q_high, const Pa
 }
 
 template <bool ComputeSine, typename Packet, bool ComputeBoth = false>
-EIGEN_DEFINE_FUNCTION_ALLOWING_MULTIPLE_DEFINITIONS
+EIGEN_DEFINE_FUNCTION_ALLOWING_MULTIPLE_DEFINITIONS constexpr
 #if EIGEN_COMP_GNUC_STRICT
     __attribute__((optimize("-fno-unsafe-math-optimizations")))
 #endif
@@ -976,18 +976,18 @@ EIGEN_DEFINE_FUNCTION_ALLOWING_MULTIPLE_DEFINITIONS
 }
 
 template <typename Packet>
-EIGEN_DEFINE_FUNCTION_ALLOWING_MULTIPLE_DEFINITIONS Packet psin_double(const Packet& x) {
+EIGEN_DEFINE_FUNCTION_ALLOWING_MULTIPLE_DEFINITIONS constexpr Packet psin_double(const Packet& x) {
   return psincos_double<true>(x);
 }
 
 template <typename Packet>
-EIGEN_DEFINE_FUNCTION_ALLOWING_MULTIPLE_DEFINITIONS Packet pcos_double(const Packet& x) {
+EIGEN_DEFINE_FUNCTION_ALLOWING_MULTIPLE_DEFINITIONS constexpr Packet pcos_double(const Packet& x) {
   return psincos_double<false>(x);
 }
 
 // Generic implementation of acos(x).
 template <typename Packet>
-EIGEN_DEFINE_FUNCTION_ALLOWING_MULTIPLE_DEFINITIONS Packet pacos_float(const Packet& x_in) {
+EIGEN_DEFINE_FUNCTION_ALLOWING_MULTIPLE_DEFINITIONS constexpr Packet pacos_float(const Packet& x_in) {
   typedef typename unpacket_traits<Packet>::type Scalar;
   static_assert(std::is_same<Scalar, float>::value, "Scalar type must be float");
 
@@ -1030,7 +1030,7 @@ EIGEN_DEFINE_FUNCTION_ALLOWING_MULTIPLE_DEFINITIONS Packet pacos_float(const Pac
 
 // Generic implementation of asin(x).
 template <typename Packet>
-EIGEN_DEFINE_FUNCTION_ALLOWING_MULTIPLE_DEFINITIONS Packet pasin_float(const Packet& x_in) {
+EIGEN_DEFINE_FUNCTION_ALLOWING_MULTIPLE_DEFINITIONS constexpr Packet pasin_float(const Packet& x_in) {
   typedef typename unpacket_traits<Packet>::type Scalar;
   static_assert(std::is_same<Scalar, float>::value, "Scalar type must be float");
 
@@ -1078,7 +1078,7 @@ struct patan_reduced {
 
 template <>
 template <typename Packet>
-EIGEN_DEFINE_FUNCTION_ALLOWING_MULTIPLE_DEFINITIONS Packet patan_reduced<double>::run(const Packet& x) {
+EIGEN_DEFINE_FUNCTION_ALLOWING_MULTIPLE_DEFINITIONS constexpr Packet patan_reduced<double>::run(const Packet& x) {
   constexpr double alpha[] = {2.6667153866462208e-05, 3.0917513112462781e-03, 5.2574296781008604e-02,
                               3.0409318473444424e-01, 7.5365702534987022e-01, 8.2704055405494614e-01,
                               3.3004361289279920e-01};
@@ -1109,7 +1109,7 @@ EIGEN_DEFINE_FUNCTION_ALLOWING_MULTIPLE_DEFINITIONS Packet patan_reduced<float>:
 }
 
 template <typename Packet>
-EIGEN_DEFINE_FUNCTION_ALLOWING_MULTIPLE_DEFINITIONS Packet generic_patan(const Packet& x_in) {
+EIGEN_DEFINE_FUNCTION_ALLOWING_MULTIPLE_DEFINITIONS constexpr Packet generic_patan(const Packet& x_in) {
   typedef typename unpacket_traits<Packet>::type Scalar;
 
   constexpr Scalar kPiOverTwo = static_cast<Scalar>(EIGEN_PI / 2);
@@ -1143,7 +1143,7 @@ EIGEN_DEFINE_FUNCTION_ALLOWING_MULTIPLE_DEFINITIONS Packet generic_patan(const P
     This implementation works on both scalars and packets.
 */
 template <typename T>
-EIGEN_DEFINE_FUNCTION_ALLOWING_MULTIPLE_DEFINITIONS T ptanh_float(const T& a_x) {
+EIGEN_DEFINE_FUNCTION_ALLOWING_MULTIPLE_DEFINITIONS constexpr T ptanh_float(const T& a_x) {
   // Clamp the inputs to the range [-c, c] and set everything
   // outside that range to 1.0. The value c is chosen as the smallest
   // floating point argument such that the approximation is exactly 1.
@@ -1194,7 +1194,7 @@ EIGEN_DEFINE_FUNCTION_ALLOWING_MULTIPLE_DEFINITIONS T ptanh_float(const T& a_x) 
     This implementation works on both scalars and packets.
 */
 template <typename T>
-EIGEN_DEFINE_FUNCTION_ALLOWING_MULTIPLE_DEFINITIONS T ptanh_double(const T& a_x) {
+EIGEN_DEFINE_FUNCTION_ALLOWING_MULTIPLE_DEFINITIONS constexpr T ptanh_double(const T& a_x) {
   // Clamp the inputs to the range [-c, c] and set everything
   // outside that range to 1.0. The value c is chosen as the smallest
   // floating point argument such that the approximation is exactly 1.
@@ -1244,7 +1244,7 @@ EIGEN_DEFINE_FUNCTION_ALLOWING_MULTIPLE_DEFINITIONS T ptanh_double(const T& a_x)
 }
 
 template <typename Packet>
-EIGEN_DEFINE_FUNCTION_ALLOWING_MULTIPLE_DEFINITIONS Packet patanh_float(const Packet& x) {
+EIGEN_DEFINE_FUNCTION_ALLOWING_MULTIPLE_DEFINITIONS constexpr Packet patanh_float(const Packet& x) {
   typedef typename unpacket_traits<Packet>::type Scalar;
   static_assert(std::is_same<Scalar, float>::value, "Scalar type must be float");
 
@@ -1273,7 +1273,7 @@ EIGEN_DEFINE_FUNCTION_ALLOWING_MULTIPLE_DEFINITIONS Packet patanh_float(const Pa
 }
 
 template <typename Packet>
-EIGEN_DEFINE_FUNCTION_ALLOWING_MULTIPLE_DEFINITIONS Packet patanh_double(const Packet& x) {
+EIGEN_DEFINE_FUNCTION_ALLOWING_MULTIPLE_DEFINITIONS constexpr Packet patanh_double(const Packet& x) {
   typedef typename unpacket_traits<Packet>::type Scalar;
   static_assert(std::is_same<Scalar, double>::value, "Scalar type must be double");
   // For x in [-0.5:0.5] we use a rational approximation of the form
@@ -1306,7 +1306,7 @@ EIGEN_DEFINE_FUNCTION_ALLOWING_MULTIPLE_DEFINITIONS Packet patanh_double(const P
 }
 
 template <typename Packet>
-EIGEN_DEFINE_FUNCTION_ALLOWING_MULTIPLE_DEFINITIONS Packet pdiv_complex(const Packet& x, const Packet& y) {
+EIGEN_DEFINE_FUNCTION_ALLOWING_MULTIPLE_DEFINITIONS constexpr Packet pdiv_complex(const Packet& x, const Packet& y) {
   typedef typename unpacket_traits<Packet>::as_real RealPacket;
   // In the following we annotate the code for the case where the inputs
   // are a pair length-2 SIMD vectors representing a single pair of complex
@@ -1326,7 +1326,7 @@ EIGEN_DEFINE_FUNCTION_ALLOWING_MULTIPLE_DEFINITIONS Packet pdiv_complex(const Pa
 }
 
 template <typename Packet>
-EIGEN_DEFINE_FUNCTION_ALLOWING_MULTIPLE_DEFINITIONS Packet plog_complex(const Packet& x) {
+EIGEN_DEFINE_FUNCTION_ALLOWING_MULTIPLE_DEFINITIONS constexpr Packet plog_complex(const Packet& x) {
   typedef typename unpacket_traits<Packet>::type Scalar;
   typedef typename Scalar::value_type RealScalar;
   typedef typename unpacket_traits<Packet>::as_real RealPacket;
@@ -1354,7 +1354,7 @@ EIGEN_DEFINE_FUNCTION_ALLOWING_MULTIPLE_DEFINITIONS Packet plog_complex(const Pa
 }
 
 template <typename Packet>
-EIGEN_DEFINE_FUNCTION_ALLOWING_MULTIPLE_DEFINITIONS Packet pexp_complex(const Packet& a) {
+EIGEN_DEFINE_FUNCTION_ALLOWING_MULTIPLE_DEFINITIONS constexpr Packet pexp_complex(const Packet& a) {
   typedef typename unpacket_traits<Packet>::as_real RealPacket;
   typedef typename unpacket_traits<Packet>::type Scalar;
   typedef typename Scalar::value_type RealScalar;
@@ -1397,7 +1397,7 @@ EIGEN_DEFINE_FUNCTION_ALLOWING_MULTIPLE_DEFINITIONS Packet pexp_complex(const Pa
 }
 
 template <typename Packet>
-EIGEN_DEFINE_FUNCTION_ALLOWING_MULTIPLE_DEFINITIONS Packet psqrt_complex(const Packet& a) {
+EIGEN_DEFINE_FUNCTION_ALLOWING_MULTIPLE_DEFINITIONS constexpr Packet psqrt_complex(const Packet& a) {
   typedef typename unpacket_traits<Packet>::type Scalar;
   typedef typename Scalar::value_type RealScalar;
   typedef typename unpacket_traits<Packet>::as_real RealPacket;
@@ -1511,7 +1511,7 @@ EIGEN_DEFINE_FUNCTION_ALLOWING_MULTIPLE_DEFINITIONS Packet psqrt_complex(const P
 // \internal \returns the norm of a complex number z = x + i*y, defined as sqrt(x^2 + y^2).
 // Implemented using the hypot(a,b) algorithm from https://doi.org/10.48550/arXiv.1904.09481
 template <typename Packet>
-EIGEN_DEFINE_FUNCTION_ALLOWING_MULTIPLE_DEFINITIONS Packet phypot_complex(const Packet& a) {
+EIGEN_DEFINE_FUNCTION_ALLOWING_MULTIPLE_DEFINITIONS constexpr Packet phypot_complex(const Packet& a) {
   typedef typename unpacket_traits<Packet>::type Scalar;
   typedef typename Scalar::value_type RealScalar;
   typedef typename unpacket_traits<Packet>::as_real RealPacket;
@@ -1546,7 +1546,7 @@ EIGEN_DEFINE_FUNCTION_ALLOWING_MULTIPLE_DEFINITIONS Packet phypot_complex(const 
 template <typename Packet>
 struct psign_impl<Packet, std::enable_if_t<!NumTraits<typename unpacket_traits<Packet>::type>::IsComplex &&
                                            !NumTraits<typename unpacket_traits<Packet>::type>::IsInteger>> {
-  static EIGEN_DEVICE_FUNC inline Packet run(const Packet& a) {
+  static EIGEN_DEVICE_FUNC inline constexpr Packet run(const Packet& a) {
     using Scalar = typename unpacket_traits<Packet>::type;
     const Packet cst_one = pset1<Packet>(Scalar(1));
     const Packet cst_zero = pzero(a);
@@ -1563,7 +1563,7 @@ template <typename Packet>
 struct psign_impl<Packet, std::enable_if_t<!NumTraits<typename unpacket_traits<Packet>::type>::IsComplex &&
                                            NumTraits<typename unpacket_traits<Packet>::type>::IsSigned &&
                                            NumTraits<typename unpacket_traits<Packet>::type>::IsInteger>> {
-  static EIGEN_DEVICE_FUNC inline Packet run(const Packet& a) {
+  static EIGEN_DEVICE_FUNC inline constexpr Packet run(const Packet& a) {
     using Scalar = typename unpacket_traits<Packet>::type;
     const Packet cst_one = pset1<Packet>(Scalar(1));
     const Packet cst_minus_one = pset1<Packet>(Scalar(-1));
@@ -1582,7 +1582,7 @@ template <typename Packet>
 struct psign_impl<Packet, std::enable_if_t<!NumTraits<typename unpacket_traits<Packet>::type>::IsComplex &&
                                            !NumTraits<typename unpacket_traits<Packet>::type>::IsSigned &&
                                            NumTraits<typename unpacket_traits<Packet>::type>::IsInteger>> {
-  static EIGEN_DEVICE_FUNC inline Packet run(const Packet& a) {
+  static EIGEN_DEVICE_FUNC inline constexpr Packet run(const Packet& a) {
     using Scalar = typename unpacket_traits<Packet>::type;
     const Packet cst_one = pset1<Packet>(Scalar(1));
     const Packet cst_zero = pzero(a);
@@ -1596,7 +1596,7 @@ struct psign_impl<Packet, std::enable_if_t<!NumTraits<typename unpacket_traits<P
 template <typename Packet>
 struct psign_impl<Packet, std::enable_if_t<NumTraits<typename unpacket_traits<Packet>::type>::IsComplex &&
                                            unpacket_traits<Packet>::vectorizable>> {
-  static EIGEN_DEVICE_FUNC inline Packet run(const Packet& a) {
+  static EIGEN_DEVICE_FUNC inline constexpr Packet run(const Packet& a) {
     typedef typename unpacket_traits<Packet>::type Scalar;
     typedef typename Scalar::value_type RealScalar;
     typedef typename unpacket_traits<Packet>::as_real RealPacket;
@@ -1634,7 +1634,7 @@ struct psign_impl<Packet, std::enable_if_t<NumTraits<typename unpacket_traits<Pa
 // This function splits x into the nearest integer n and fractional part r,
 // such that x = n + r holds exactly.
 template <typename Packet>
-EIGEN_STRONG_INLINE void absolute_split(const Packet& x, Packet& n, Packet& r) {
+EIGEN_STRONG_INLINE constexpr void absolute_split(const Packet& x, Packet& n, Packet& r) {
   n = pround(x);
   r = psub(x, n);
 }
@@ -1642,7 +1642,7 @@ EIGEN_STRONG_INLINE void absolute_split(const Packet& x, Packet& n, Packet& r) {
 // This function computes the sum {s, r}, such that x + y = s_hi + s_lo
 // holds exactly, and s_hi = fl(x+y), if |x| >= |y|.
 template <typename Packet>
-EIGEN_STRONG_INLINE void fast_twosum(const Packet& x, const Packet& y, Packet& s_hi, Packet& s_lo) {
+EIGEN_STRONG_INLINE constexpr void fast_twosum(const Packet& x, const Packet& y, Packet& s_hi, Packet& s_lo) {
   s_hi = padd(x, y);
   const Packet t = psub(s_hi, x);
   s_lo = psub(y, t);
@@ -1654,7 +1654,7 @@ EIGEN_STRONG_INLINE void fast_twosum(const Packet& x, const Packet& y, Packet& s
 // {p_hi, p_lo} such that x * y = p_hi + p_lo holds exactly and
 // p_hi = fl(x * y).
 template <typename Packet>
-EIGEN_STRONG_INLINE void twoprod(const Packet& x, const Packet& y, Packet& p_hi, Packet& p_lo) {
+EIGEN_STRONG_INLINE constexpr void twoprod(const Packet& x, const Packet& y, Packet& p_hi, Packet& p_lo) {
   p_hi = pmul(x, y);
   p_lo = pmsub(x, y, p_hi);
 }
@@ -1667,9 +1667,9 @@ EIGEN_STRONG_INLINE void twoprod(const Packet& x, const Packet& y, Packet& p_hi,
 // This is Algorithm 3 from Jean-Michel Muller, "Elementary Functions",
 // 3rd edition, Birkh\"auser, 2016.
 template <typename Packet>
-EIGEN_STRONG_INLINE void veltkamp_splitting(const Packet& x, Packet& x_hi, Packet& x_lo) {
+EIGEN_STRONG_INLINE constexpr void veltkamp_splitting(const Packet& x, Packet& x_hi, Packet& x_lo) {
   typedef typename unpacket_traits<Packet>::type Scalar;
-  EIGEN_CONSTEXPR int shift = (NumTraits<Scalar>::digits() + 1) / 2;
+  constexpr int shift = (NumTraits<Scalar>::digits() + 1) / 2;
   const Scalar shift_scale = Scalar(uint64_t(1) << shift);  // Scalar constructor not necessarily constexpr.
   const Packet gamma = pmul(pset1<Packet>(shift_scale + Scalar(1)), x);
   Packet rho = psub(x, gamma);
@@ -1682,7 +1682,7 @@ EIGEN_STRONG_INLINE void veltkamp_splitting(const Packet& x, Packet& x_hi, Packe
 // {p_hi, p_lo} such that x * y = p_hi + p_lo holds exactly and
 // p_hi = fl(x * y).
 template <typename Packet>
-EIGEN_STRONG_INLINE void twoprod(const Packet& x, const Packet& y, Packet& p_hi, Packet& p_lo) {
+EIGEN_STRONG_INLINE constexpr void twoprod(const Packet& x, const Packet& y, Packet& p_hi, Packet& p_lo) {
   Packet x_hi, x_lo, y_hi, y_lo;
   veltkamp_splitting(x, x_hi, x_lo);
   veltkamp_splitting(y, y_hi, y_lo);
@@ -1703,8 +1703,8 @@ EIGEN_STRONG_INLINE void twoprod(const Packet& x, const Packet& y, Packet& p_hi,
 // This is Algorithm 5 from Jean-Michel Muller, "Elementary Functions",
 // 3rd edition, Birkh\"auser, 2016.
 template <typename Packet>
-EIGEN_STRONG_INLINE void twosum(const Packet& x_hi, const Packet& x_lo, const Packet& y_hi, const Packet& y_lo,
-                                Packet& s_hi, Packet& s_lo) {
+EIGEN_STRONG_INLINE constexpr void twosum(const Packet& x_hi, const Packet& x_lo, const Packet& y_hi,
+                                          const Packet& y_lo, Packet& s_hi, Packet& s_lo) {
   const Packet x_greater_mask = pcmp_lt(pabs(y_hi), pabs(x_hi));
   Packet r_hi_1, r_lo_1;
   fast_twosum(x_hi, y_hi, r_hi_1, r_lo_1);
@@ -1722,8 +1722,8 @@ EIGEN_STRONG_INLINE void twosum(const Packet& x_hi, const Packet& x_lo, const Pa
 // This is a version of twosum for double word numbers,
 // which assumes that |x_hi| >= |y_hi|.
 template <typename Packet>
-EIGEN_STRONG_INLINE void fast_twosum(const Packet& x_hi, const Packet& x_lo, const Packet& y_hi, const Packet& y_lo,
-                                     Packet& s_hi, Packet& s_lo) {
+EIGEN_STRONG_INLINE constexpr void fast_twosum(const Packet& x_hi, const Packet& x_lo, const Packet& y_hi,
+                                               const Packet& y_lo, Packet& s_hi, Packet& s_lo) {
   Packet r_hi, r_lo;
   fast_twosum(x_hi, y_hi, r_hi, r_lo);
   const Packet s = padd(padd(y_lo, r_lo), x_lo);
@@ -1734,8 +1734,8 @@ EIGEN_STRONG_INLINE void fast_twosum(const Packet& x_hi, const Packet& x_lo, con
 // double word number {y_hi, y_lo} number, with the assumption
 // that |x| >= |y_hi|.
 template <typename Packet>
-EIGEN_STRONG_INLINE void fast_twosum(const Packet& x, const Packet& y_hi, const Packet& y_lo, Packet& s_hi,
-                                     Packet& s_lo) {
+EIGEN_STRONG_INLINE constexpr void fast_twosum(const Packet& x, const Packet& y_hi, const Packet& y_lo, Packet& s_hi,
+                                               Packet& s_lo) {
   Packet r_hi, r_lo;
   fast_twosum(x, y_hi, r_hi, r_lo);
   const Packet s = padd(y_lo, r_lo);
@@ -1751,7 +1751,8 @@ EIGEN_STRONG_INLINE void fast_twosum(const Packet& x, const Packet& y_hi, const 
 // This is Algorithm 7 from Jean-Michel Muller, "Elementary Functions",
 // 3rd edition, Birkh\"auser, 2016.
 template <typename Packet>
-EIGEN_STRONG_INLINE void twoprod(const Packet& x_hi, const Packet& x_lo, const Packet& y, Packet& p_hi, Packet& p_lo) {
+EIGEN_STRONG_INLINE constexpr void twoprod(const Packet& x_hi, const Packet& x_lo, const Packet& y, Packet& p_hi,
+                                           Packet& p_lo) {
   Packet c_hi, c_lo1;
   twoprod(x_hi, y, c_hi, c_lo1);
   const Packet c_lo2 = pmul(x_lo, y);
@@ -1768,8 +1769,8 @@ EIGEN_STRONG_INLINE void twoprod(const Packet& x_hi, const Packet& x_lo, const P
 // of less than 2*2^{-2p}, where p is the number of significand bit
 // in the floating point type.
 template <typename Packet>
-EIGEN_STRONG_INLINE void twoprod(const Packet& x_hi, const Packet& x_lo, const Packet& y_hi, const Packet& y_lo,
-                                 Packet& p_hi, Packet& p_lo) {
+EIGEN_STRONG_INLINE constexpr void twoprod(const Packet& x_hi, const Packet& x_lo, const Packet& y_hi,
+                                           const Packet& y_lo, Packet& p_hi, Packet& p_lo) {
   Packet p_hi_hi, p_hi_lo;
   twoprod(x_hi, x_lo, y_hi, p_hi_hi, p_hi_lo);
   Packet p_lo_hi, p_lo_lo;
@@ -1782,7 +1783,7 @@ EIGEN_STRONG_INLINE void twoprod(const Packet& x_hi, const Packet& x_lo, const P
 // for basic building blocks of double-word arithmetic", Joldes, Muller, & Popescu,
 // 2017. https://hal.archives-ouvertes.fr/hal-01351529
 template <typename Packet>
-void doubleword_div_fp(const Packet& x_hi, const Packet& x_lo, const Packet& y, Packet& z_hi, Packet& z_lo) {
+constexpr void doubleword_div_fp(const Packet& x_hi, const Packet& x_lo, const Packet& y, Packet& z_hi, Packet& z_lo) {
   const Packet t_hi = pdiv(x_hi, y);
   Packet pi_hi, pi_lo;
   twoprod(t_hi, y, pi_hi, pi_lo);
@@ -1797,7 +1798,7 @@ void doubleword_div_fp(const Packet& x_hi, const Packet& x_lo, const Packet& y, 
 template <typename Scalar>
 struct accurate_log2 {
   template <typename Packet>
-  EIGEN_STRONG_INLINE void operator()(const Packet& x, Packet& log2_x_hi, Packet& log2_x_lo) {
+  EIGEN_STRONG_INLINE constexpr void operator()(const Packet& x, Packet& log2_x_hi, Packet& log2_x_lo) {
     log2_x_hi = plog2(x);
     log2_x_lo = pzero(x);
   }
@@ -1812,7 +1813,7 @@ struct accurate_log2 {
 template <>
 struct accurate_log2<float> {
   template <typename Packet>
-  EIGEN_STRONG_INLINE void operator()(const Packet& z, Packet& log2_x_hi, Packet& log2_x_lo) {
+  EIGEN_STRONG_INLINE constexpr void operator()(const Packet& z, Packet& log2_x_hi, Packet& log2_x_lo) {
     // The function log(1+x)/x is approximated in the interval
     // [1/sqrt(2)-1;sqrt(2)-1] by a degree 10 polynomial of the form
     //  Q(x) = (C0 + x * (C1 + x * (C2 + x * (C3 + x * P(x))))),
@@ -1892,7 +1893,7 @@ struct accurate_log2<float> {
 template <>
 struct accurate_log2<double> {
   template <typename Packet>
-  EIGEN_STRONG_INLINE void operator()(const Packet& x, Packet& log2_x_hi, Packet& log2_x_lo) {
+  EIGEN_STRONG_INLINE constexpr void operator()(const Packet& x, Packet& log2_x_hi, Packet& log2_x_lo) {
     // We use a transformation of variables:
     //    r = c * (x-1) / (x+1),
     // such that
@@ -1977,7 +1978,7 @@ struct accurate_log2<double> {
 template <typename Scalar>
 struct fast_accurate_exp2 {
   template <typename Packet>
-  EIGEN_STRONG_INLINE Packet operator()(const Packet& x) {
+  EIGEN_STRONG_INLINE constexpr Packet operator()(const Packet& x) {
     // TODO(rmlarsen): Add a pexp2 packetop.
     return pexp(pmul(pset1<Packet>(Scalar(EIGEN_LN2)), x));
   }
@@ -1990,7 +1991,7 @@ struct fast_accurate_exp2 {
 template <>
 struct fast_accurate_exp2<float> {
   template <typename Packet>
-  EIGEN_STRONG_INLINE Packet operator()(const Packet& x) {
+  EIGEN_STRONG_INLINE constexpr Packet operator()(const Packet& x) {
     // This function approximates exp2(x) by a degree 6 polynomial of the form
     // Q(x) = 1 + x * (C + x * P(x)), where the degree 4 polynomial P(x) is evaluated in
     // single precision, and the remaining steps are evaluated with extra precision using
@@ -2047,7 +2048,7 @@ struct fast_accurate_exp2<float> {
 template <>
 struct fast_accurate_exp2<double> {
   template <typename Packet>
-  EIGEN_STRONG_INLINE Packet operator()(const Packet& x) {
+  EIGEN_STRONG_INLINE constexpr Packet operator()(const Packet& x) {
     // This function approximates exp2(x) by a degree 10 polynomial of the form
     // Q(x) = 1 + x * (C + x * P(x)), where the degree 8 polynomial P(x) is evaluated in
     // single precision, and the remaining steps are evaluated with extra precision using
@@ -2113,14 +2114,14 @@ struct fast_accurate_exp2<double> {
 // TODO(rmlarsen): We should probably add this as a packet up 'ppow', to make it
 // easier to specialize or turn off for specific types and/or backends.x
 template <typename Packet>
-EIGEN_STRONG_INLINE Packet generic_pow_impl(const Packet& x, const Packet& y) {
+EIGEN_STRONG_INLINE constexpr Packet generic_pow_impl(const Packet& x, const Packet& y) {
   typedef typename unpacket_traits<Packet>::type Scalar;
   // Split x into exponent e_x and mantissa m_x.
   Packet e_x;
   Packet m_x = pfrexp(x, e_x);
 
   // Adjust m_x to lie in [1/sqrt(2):sqrt(2)] to minimize absolute error in log2(m_x).
-  EIGEN_CONSTEXPR Scalar sqrt_half = Scalar(0.70710678118654752440);
+  constexpr Scalar sqrt_half = Scalar(0.70710678118654752440);
   const Packet m_x_scale_mask = pcmp_lt(m_x, pset1<Packet>(sqrt_half));
   m_x = pselect(m_x_scale_mask, pmul(pset1<Packet>(Scalar(2)), m_x), m_x);
   e_x = pselect(m_x_scale_mask, psub(e_x, pset1<Packet>(Scalar(1))), e_x);
@@ -2162,7 +2163,7 @@ EIGEN_STRONG_INLINE Packet generic_pow_impl(const Packet& x, const Packet& y) {
 
 // Generic implementation of pow(x,y).
 template <typename Packet>
-EIGEN_DEFINE_FUNCTION_ALLOWING_MULTIPLE_DEFINITIONS Packet generic_pow(const Packet& x, const Packet& y) {
+EIGEN_DEFINE_FUNCTION_ALLOWING_MULTIPLE_DEFINITIONS constexpr Packet generic_pow(const Packet& x, const Packet& y) {
   typedef typename unpacket_traits<Packet>::type Scalar;
 
   const Packet cst_pos_inf = pset1<Packet>(NumTraits<Scalar>::infinity());
@@ -2193,7 +2194,7 @@ EIGEN_DEFINE_FUNCTION_ALLOWING_MULTIPLE_DEFINITIONS Packet generic_pow(const Pac
   const Packet y_is_pos = pandnot(ptrue(y), por(abs_y_is_zero, y_is_neg));
   const Packet y_is_nan = pisnan(y);
   const Packet abs_y_is_inf = pcmp_eq(abs_y, cst_pos_inf);
-  EIGEN_CONSTEXPR Scalar huge_exponent =
+  constexpr Scalar huge_exponent =
       (NumTraits<Scalar>::max_exponent() * Scalar(EIGEN_LN2)) / NumTraits<Scalar>::epsilon();
   const Packet abs_y_is_huge = pcmp_le(pset1<Packet>(huge_exponent), pabs(y));
 
@@ -2237,16 +2238,16 @@ struct exponent_helper {
   using safe_abs_type = ScalarExponent;
   static constexpr ScalarExponent one_half = ScalarExponent(0.5);
   // these routines assume that exp is an integer stored as a floating point type
-  static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE ScalarExponent safe_abs(const ScalarExponent& exp) {
+  static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr ScalarExponent safe_abs(const ScalarExponent& exp) {
     return numext::abs(exp);
   }
-  static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE bool is_odd(const ScalarExponent& exp) {
+  static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr bool is_odd(const ScalarExponent& exp) {
     eigen_assert(((numext::isfinite)(exp) && exp == numext::floor(exp)) && "exp must be an integer");
     ScalarExponent exp_div_2 = exp * one_half;
     ScalarExponent floor_exp_div_2 = numext::floor(exp_div_2);
     return exp_div_2 != floor_exp_div_2;
   }
-  static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE ScalarExponent floor_div_two(const ScalarExponent& exp) {
+  static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr ScalarExponent floor_div_two(const ScalarExponent& exp) {
     ScalarExponent exp_div_2 = exp * one_half;
     return numext::floor(exp_div_2);
   }
@@ -2257,15 +2258,15 @@ struct exponent_helper<ScalarExponent, true> {
   // if `exp` is a signed integer type, cast it to its unsigned counterpart to safely store its absolute value
   // consider the (rare) case where `exp` is an int32_t: abs(-2147483648) != 2147483648
   using safe_abs_type = typename numext::get_integer_by_size<sizeof(ScalarExponent)>::unsigned_type;
-  static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE safe_abs_type safe_abs(const ScalarExponent& exp) {
+  static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr safe_abs_type safe_abs(const ScalarExponent& exp) {
     ScalarExponent mask = numext::signbit(exp);
     safe_abs_type result = safe_abs_type(exp ^ mask);
     return result + safe_abs_type(ScalarExponent(1) & mask);
   }
-  static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE bool is_odd(const safe_abs_type& exp) {
+  static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr bool is_odd(const safe_abs_type& exp) {
     return exp % safe_abs_type(2) != safe_abs_type(0);
   }
-  static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE safe_abs_type floor_div_two(const safe_abs_type& exp) {
+  static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr safe_abs_type floor_div_two(const safe_abs_type& exp) {
     return exp >> safe_abs_type(1);
   }
 };
@@ -2274,7 +2275,7 @@ template <typename Packet, typename ScalarExponent,
           bool ReciprocateIfExponentIsNegative =
               !NumTraits<typename unpacket_traits<Packet>::type>::IsInteger && NumTraits<ScalarExponent>::IsSigned>
 struct reciprocate {
-  static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Packet run(const Packet& x, const ScalarExponent& exponent) {
+  static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr Packet run(const Packet& x, const ScalarExponent& exponent) {
     using Scalar = typename unpacket_traits<Packet>::type;
     const Packet cst_pos_one = pset1<Packet>(Scalar(1));
     return exponent < 0 ? pdiv(cst_pos_one, x) : x;
@@ -2285,11 +2286,13 @@ template <typename Packet, typename ScalarExponent>
 struct reciprocate<Packet, ScalarExponent, false> {
   // pdiv not defined, nor necessary for integer base types
   // if the exponent is unsigned, then the exponent cannot be negative
-  static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Packet run(const Packet& x, const ScalarExponent&) { return x; }
+  static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr Packet run(const Packet& x, const ScalarExponent&) {
+    return x;
+  }
 };
 
 template <typename Packet, typename ScalarExponent>
-EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Packet int_pow(const Packet& x, const ScalarExponent& exponent) {
+EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr Packet int_pow(const Packet& x, const ScalarExponent& exponent) {
   using Scalar = typename unpacket_traits<Packet>::type;
   using ExponentHelper = exponent_helper<ScalarExponent>;
   using AbsExponentType = typename ExponentHelper::safe_abs_type;
@@ -2311,15 +2314,15 @@ EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Packet int_pow(const Packet& x, const Scal
 }
 
 template <typename Packet>
-EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Packet gen_pow(const Packet& x,
-                                                     const typename unpacket_traits<Packet>::type& exponent) {
+EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr Packet gen_pow(const Packet& x,
+                                                               const typename unpacket_traits<Packet>::type& exponent) {
   const Packet exponent_packet = pset1<Packet>(exponent);
   return generic_pow_impl(x, exponent_packet);
 }
 
 template <typename Packet, typename ScalarExponent>
-EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Packet handle_nonint_nonint_errors(const Packet& x, const Packet& powx,
-                                                                         const ScalarExponent& exponent) {
+EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr Packet handle_nonint_nonint_errors(const Packet& x, const Packet& powx,
+                                                                                   const ScalarExponent& exponent) {
   using Scalar = typename unpacket_traits<Packet>::type;
 
   // non-integer base and exponent case
@@ -2368,7 +2371,8 @@ EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Packet handle_nonint_nonint_errors(const P
 
 template <typename Packet, typename ScalarExponent,
           std::enable_if_t<NumTraits<typename unpacket_traits<Packet>::type>::IsSigned, bool> = true>
-EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Packet handle_negative_exponent(const Packet& x, const ScalarExponent& exponent) {
+EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr Packet handle_negative_exponent(const Packet& x,
+                                                                                const ScalarExponent& exponent) {
   using Scalar = typename unpacket_traits<Packet>::type;
 
   // signed integer base, signed integer exponent case
@@ -2396,7 +2400,8 @@ EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Packet handle_negative_exponent(const Pack
 
 template <typename Packet, typename ScalarExponent,
           std::enable_if_t<!NumTraits<typename unpacket_traits<Packet>::type>::IsSigned, bool> = true>
-EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Packet handle_negative_exponent(const Packet& x, const ScalarExponent&) {
+EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr Packet handle_negative_exponent(const Packet& x,
+                                                                                const ScalarExponent&) {
   using Scalar = typename unpacket_traits<Packet>::type;
 
   // unsigned integer base, signed integer exponent case
@@ -2424,7 +2429,7 @@ struct unary_pow_impl;
 template <typename Packet, typename ScalarExponent, bool ExponentIsSigned>
 struct unary_pow_impl<Packet, ScalarExponent, false, false, ExponentIsSigned> {
   typedef typename unpacket_traits<Packet>::type Scalar;
-  static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Packet run(const Packet& x, const ScalarExponent& exponent) {
+  static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr Packet run(const Packet& x, const ScalarExponent& exponent) {
     const bool exponent_is_integer = (numext::isfinite)(exponent) && numext::round(exponent) == exponent;
     if (exponent_is_integer) {
       return unary_pow::int_pow(x, exponent);
@@ -2439,7 +2444,7 @@ struct unary_pow_impl<Packet, ScalarExponent, false, false, ExponentIsSigned> {
 template <typename Packet, typename ScalarExponent, bool ExponentIsSigned>
 struct unary_pow_impl<Packet, ScalarExponent, false, true, ExponentIsSigned> {
   typedef typename unpacket_traits<Packet>::type Scalar;
-  static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Packet run(const Packet& x, const ScalarExponent& exponent) {
+  static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr Packet run(const Packet& x, const ScalarExponent& exponent) {
     return unary_pow::int_pow(x, exponent);
   }
 };
@@ -2447,7 +2452,7 @@ struct unary_pow_impl<Packet, ScalarExponent, false, true, ExponentIsSigned> {
 template <typename Packet, typename ScalarExponent>
 struct unary_pow_impl<Packet, ScalarExponent, true, true, true> {
   typedef typename unpacket_traits<Packet>::type Scalar;
-  static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Packet run(const Packet& x, const ScalarExponent& exponent) {
+  static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr Packet run(const Packet& x, const ScalarExponent& exponent) {
     if (exponent < ScalarExponent(0)) {
       return unary_pow::handle_negative_exponent(x, exponent);
     } else {
@@ -2459,13 +2464,13 @@ struct unary_pow_impl<Packet, ScalarExponent, true, true, true> {
 template <typename Packet, typename ScalarExponent>
 struct unary_pow_impl<Packet, ScalarExponent, true, true, false> {
   typedef typename unpacket_traits<Packet>::type Scalar;
-  static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Packet run(const Packet& x, const ScalarExponent& exponent) {
+  static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr Packet run(const Packet& x, const ScalarExponent& exponent) {
     return unary_pow::int_pow(x, exponent);
   }
 };
 
 template <typename Packet>
-EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Packet generic_rint(const Packet& a) {
+EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr Packet generic_rint(const Packet& a) {
   using Scalar = typename unpacket_traits<Packet>::type;
   using IntType = typename numext::get_integer_by_size<sizeof(Scalar)>::signed_type;
   // Adds and subtracts signum(a) * 2^kMantissaBits to force rounding.
@@ -2485,7 +2490,7 @@ EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Packet generic_rint(const Packet& a) {
 }
 
 template <typename Packet>
-EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Packet generic_floor(const Packet& a) {
+EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr Packet generic_floor(const Packet& a) {
   using Scalar = typename unpacket_traits<Packet>::type;
   const Packet cst_1 = pset1<Packet>(Scalar(1));
   Packet rint_a = generic_rint(a);
@@ -2497,7 +2502,7 @@ EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Packet generic_floor(const Packet& a) {
 }
 
 template <typename Packet>
-EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Packet generic_ceil(const Packet& a) {
+EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr Packet generic_ceil(const Packet& a) {
   using Scalar = typename unpacket_traits<Packet>::type;
   const Packet cst_1 = pset1<Packet>(Scalar(1));
   const Packet sign_mask = pset1<Packet>(static_cast<Scalar>(-0.0));
@@ -2512,7 +2517,7 @@ EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Packet generic_ceil(const Packet& a) {
 }
 
 template <typename Packet>
-EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Packet generic_trunc(const Packet& a) {
+EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr Packet generic_trunc(const Packet& a) {
   Packet abs_a = pabs(a);
   Packet sign_a = pandnot(a, abs_a);
   Packet floor_abs_a = generic_floor(abs_a);
@@ -2521,7 +2526,7 @@ EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Packet generic_trunc(const Packet& a) {
 }
 
 template <typename Packet>
-EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Packet generic_round(const Packet& a) {
+EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr Packet generic_round(const Packet& a) {
   using Scalar = typename unpacket_traits<Packet>::type;
   const Packet cst_half = pset1<Packet>(Scalar(0.5));
   const Packet cst_1 = pset1<Packet>(Scalar(1));
@@ -2540,20 +2545,20 @@ template <typename Packet>
 struct nearest_integer_packetop_impl<Packet, /*IsScalar*/ false, /*IsInteger*/ false> {
   using Scalar = typename unpacket_traits<Packet>::type;
   static_assert(packet_traits<Scalar>::HasRound, "Generic nearest integer functions are disabled for this type.");
-  static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Packet run_floor(const Packet& x) { return generic_floor(x); }
-  static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Packet run_ceil(const Packet& x) { return generic_ceil(x); }
-  static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Packet run_rint(const Packet& x) { return generic_rint(x); }
-  static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Packet run_round(const Packet& x) { return generic_round(x); }
-  static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Packet run_trunc(const Packet& x) { return generic_trunc(x); }
+  static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr Packet run_floor(const Packet& x) { return generic_floor(x); }
+  static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr Packet run_ceil(const Packet& x) { return generic_ceil(x); }
+  static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr Packet run_rint(const Packet& x) { return generic_rint(x); }
+  static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr Packet run_round(const Packet& x) { return generic_round(x); }
+  static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr Packet run_trunc(const Packet& x) { return generic_trunc(x); }
 };
 
 template <typename Packet>
 struct nearest_integer_packetop_impl<Packet, /*IsScalar*/ false, /*IsInteger*/ true> {
-  static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Packet run_floor(const Packet& x) { return x; }
-  static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Packet run_ceil(const Packet& x) { return x; }
-  static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Packet run_rint(const Packet& x) { return x; }
-  static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Packet run_round(const Packet& x) { return x; }
-  static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Packet run_trunc(const Packet& x) { return x; }
+  static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr Packet run_floor(const Packet& x) { return x; }
+  static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr Packet run_ceil(const Packet& x) { return x; }
+  static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr Packet run_rint(const Packet& x) { return x; }
+  static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr Packet run_round(const Packet& x) { return x; }
+  static EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr Packet run_trunc(const Packet& x) { return x; }
 };
 
 }  // end namespace internal

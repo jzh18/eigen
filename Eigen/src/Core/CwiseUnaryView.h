@@ -64,29 +64,29 @@ class CwiseUnaryViewImpl<ViewOp, MatrixType, StrideType, Dense, false>
   EIGEN_DENSE_PUBLIC_INTERFACE(Derived)
   EIGEN_INHERIT_ASSIGNMENT_OPERATORS(CwiseUnaryViewImpl)
 
-  EIGEN_DEVICE_FUNC inline const Scalar* data() const { return &(this->coeffRef(0)); }
+  EIGEN_DEVICE_FUNC inline constexpr const Scalar* data() const { return &(this->coeffRef(0)); }
 
-  EIGEN_DEVICE_FUNC EIGEN_CONSTEXPR inline Index innerStride() const {
+  EIGEN_DEVICE_FUNC inline constexpr Index innerStride() const {
     return StrideType::InnerStrideAtCompileTime != 0 ? int(StrideType::InnerStrideAtCompileTime)
                                                      : derived().nestedExpression().innerStride() *
                                                            sizeof(typename traits<MatrixType>::Scalar) / sizeof(Scalar);
   }
 
-  EIGEN_DEVICE_FUNC EIGEN_CONSTEXPR inline Index outerStride() const {
+  EIGEN_DEVICE_FUNC inline constexpr Index outerStride() const {
     return StrideType::OuterStrideAtCompileTime != 0 ? int(StrideType::OuterStrideAtCompileTime)
                                                      : derived().nestedExpression().outerStride() *
                                                            sizeof(typename traits<MatrixType>::Scalar) / sizeof(Scalar);
   }
 
  protected:
-  EIGEN_DEFAULT_EMPTY_CONSTRUCTOR_AND_DESTRUCTOR(CwiseUnaryViewImpl)
+  EIGEN_DEVICE_FUNC constexpr CwiseUnaryViewImpl() = default;
 
   // Allow const access to coeffRef for the case of direct access being enabled.
-  EIGEN_DEVICE_FUNC inline const Scalar& coeffRef(Index index) const {
+  EIGEN_DEVICE_FUNC inline constexpr const Scalar& coeffRef(Index index) const {
     return internal::evaluator<Derived>(derived()).coeffRef(index);
   }
 
-  EIGEN_DEVICE_FUNC inline const Scalar& coeffRef(Index row, Index col) const {
+  EIGEN_DEVICE_FUNC inline constexpr const Scalar& coeffRef(Index row, Index col) const {
     return internal::evaluator<Derived>(derived()).coeffRef(row, col);
   }
 };
@@ -101,18 +101,18 @@ class CwiseUnaryViewImpl<ViewOp, MatrixType, StrideType, Dense, true>
   EIGEN_INHERIT_ASSIGNMENT_OPERATORS(CwiseUnaryViewImpl)
 
   using Base::data;
-  EIGEN_DEVICE_FUNC inline Scalar* data() { return &(this->coeffRef(0)); }
+  EIGEN_DEVICE_FUNC inline constexpr Scalar* data() { return &(this->coeffRef(0)); }
 
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Scalar& coeffRef(Index row, Index col) {
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr Scalar& coeffRef(Index row, Index col) {
     return internal::evaluator<Derived>(derived()).coeffRef(row, col);
   }
 
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Scalar& coeffRef(Index index) {
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr Scalar& coeffRef(Index index) {
     return internal::evaluator<Derived>(derived()).coeffRef(index);
   }
 
  protected:
-  EIGEN_DEFAULT_EMPTY_CONSTRUCTOR_AND_DESTRUCTOR(CwiseUnaryViewImpl)
+  EIGEN_DEVICE_FUNC constexpr CwiseUnaryViewImpl() = default;
 };
 
 }  // namespace internal
@@ -140,22 +140,24 @@ class CwiseUnaryView : public internal::CwiseUnaryViewImpl<ViewOp, MatrixType, S
   typedef typename internal::ref_selector<MatrixType>::non_const_type MatrixTypeNested;
   typedef internal::remove_all_t<MatrixType> NestedExpression;
 
-  explicit EIGEN_DEVICE_FUNC inline CwiseUnaryView(MatrixType& mat, const ViewOp& func = ViewOp())
+  explicit EIGEN_DEVICE_FUNC inline constexpr CwiseUnaryView(MatrixType& mat, const ViewOp& func = ViewOp())
       : m_matrix(mat), m_functor(func) {}
 
   EIGEN_INHERIT_ASSIGNMENT_OPERATORS(CwiseUnaryView)
 
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE EIGEN_CONSTEXPR Index rows() const EIGEN_NOEXCEPT { return m_matrix.rows(); }
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE EIGEN_CONSTEXPR Index cols() const EIGEN_NOEXCEPT { return m_matrix.cols(); }
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr Index rows() const EIGEN_NOEXCEPT { return m_matrix.rows(); }
+  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr Index cols() const EIGEN_NOEXCEPT { return m_matrix.cols(); }
 
   /** \returns the functor representing unary operation */
-  EIGEN_DEVICE_FUNC const ViewOp& functor() const { return m_functor; }
+  EIGEN_DEVICE_FUNC constexpr const ViewOp& functor() const { return m_functor; }
 
   /** \returns the nested expression */
-  EIGEN_DEVICE_FUNC const internal::remove_all_t<MatrixTypeNested>& nestedExpression() const { return m_matrix; }
+  EIGEN_DEVICE_FUNC constexpr const internal::remove_all_t<MatrixTypeNested>& nestedExpression() const {
+    return m_matrix;
+  }
 
   /** \returns the nested expression */
-  EIGEN_DEVICE_FUNC std::remove_reference_t<MatrixTypeNested>& nestedExpression() { return m_matrix; }
+  EIGEN_DEVICE_FUNC constexpr std::remove_reference_t<MatrixTypeNested>& nestedExpression() { return m_matrix; }
 
  protected:
   MatrixTypeNested m_matrix;

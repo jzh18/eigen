@@ -21,10 +21,12 @@ EIGEN_DECLARE_TEST(constexpr) {
   VERIFY_IS_EQUAL(mat.size(), 9);
   VERIFY_IS_EQUAL(mat(0, 0), 1);
   static_assert(mat.coeff(0, 1) == 2);
+
   constexpr Array33i arr({{1, 2, 3}, {4, 5, 6}, {7, 8, 9}});
   VERIFY_IS_EQUAL(arr(0, 0), 1);
   VERIFY_IS_EQUAL(arr.size(), 9);
   static_assert(arr.coeff(0, 1) == 2);
+
   // Also check dynamic size arrays/matrices with fixed-size storage (currently
   // only works if all elements are initialized, since otherwise the compiler
   // complains about uninitialized trailing elements.
@@ -32,6 +34,7 @@ EIGEN_DECLARE_TEST(constexpr) {
   VERIFY_IS_EQUAL(dyn_mat.size(), 9);
   VERIFY_IS_EQUAL(dyn_mat(0, 0), 1);
   static_assert(dyn_mat.coeff(0, 1) == 2);
+
   constexpr Array<int, Eigen::Dynamic, Eigen::Dynamic, 0, 3, 3> dyn_arr({{1, 2, 3}, {4, 5, 6}, {7, 8, 9}});
   VERIFY_IS_EQUAL(dyn_arr(0, 0), 1);
   VERIFY_IS_EQUAL(dyn_arr.size(), 9);

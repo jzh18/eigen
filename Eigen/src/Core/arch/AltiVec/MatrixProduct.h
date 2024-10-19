@@ -1984,7 +1984,6 @@ EIGEN_ALWAYS_INLINE void gemm_extra_row(const DataMapper& res, const Scalar* lhs
                                         Index remaining_rows, const Packet& pAlpha, const Packet& pMask) {
   MICRO_EXTRA(MICRO_EXTRA_ROWS, remaining_rows, false)
 }
-
 #define MICRO_UNROLL_WORK(func, func2, peel) \
   MICRO_UNROLL(func2);                       \
   func(0, peel) func(1, peel) func(2, peel) func(3, peel) func(4, peel) func(5, peel) func(6, peel) func(7, peel)
@@ -2407,7 +2406,6 @@ EIGEN_ALWAYS_INLINE void gemm_complex_extra_row(const DataMapper& res, const Sca
                                                 const Packet& pAlphaImag, const Packet& pMask) {
   MICRO_EXTRA(MICRO_COMPLEX_EXTRA_ROWS, remaining_rows, false)
 }
-
 #define MICRO_COMPLEX_UNROLL_WORK(func, func2, peel) \
   MICRO_COMPLEX_UNROLL(func2);                       \
   func(0, peel) func(1, peel) func(2, peel) func(3, peel)
