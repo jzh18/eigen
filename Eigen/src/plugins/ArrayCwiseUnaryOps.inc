@@ -427,11 +427,15 @@ EIGEN_DEVICE_FUNC inline constexpr const IsFiniteTypedReturnType isFiniteTyped()
  *
  * \sa operator!=()
  */
-EIGEN_DEVICE_FUNC inline constexpr const BooleanNotReturnType operator!() const { return BooleanNotReturnType(derived()); }
+EIGEN_DEVICE_FUNC inline constexpr const BooleanNotReturnType operator!() const {
+  return BooleanNotReturnType(derived());
+}
 
 /** \returns an expression of the bitwise ~ operator of *this
  */
-EIGEN_DEVICE_FUNC inline constexpr const BitwiseNotReturnType operator~() const { return BitwiseNotReturnType(derived()); }
+EIGEN_DEVICE_FUNC inline constexpr const BitwiseNotReturnType operator~() const {
+  return BitwiseNotReturnType(derived());
+}
 
 // --- SpecialFunctions module ---
 

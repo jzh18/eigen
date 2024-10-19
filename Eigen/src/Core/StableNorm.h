@@ -47,7 +47,8 @@ inline constexpr void stable_norm_kernel(const ExpressionType& bl, Scalar& ssq, 
 }
 
 template <typename VectorType, typename RealScalar>
-constexpr void stable_norm_impl_inner_step(const VectorType& vec, RealScalar& ssq, RealScalar& scale, RealScalar& invScale) {
+constexpr void stable_norm_impl_inner_step(const VectorType& vec, RealScalar& ssq, RealScalar& scale,
+                                           RealScalar& invScale) {
   const Index blockSize = 4096;
 
   Index n = vec.size();

@@ -584,12 +584,12 @@ class DenseBase
 #else
   typedef std::conditional_t<(Flags & DirectAccessBit) == DirectAccessBit,
                              internal::pointer_based_stl_iterator<Derived>,
-                             internal::generic_randaccess_stl_iterator<Derived> >
+                             internal::generic_randaccess_stl_iterator<Derived>>
       iterator_type;
 
   typedef std::conditional_t<(Flags & DirectAccessBit) == DirectAccessBit,
                              internal::pointer_based_stl_iterator<const Derived>,
-                             internal::generic_randaccess_stl_iterator<const Derived> >
+                             internal::generic_randaccess_stl_iterator<const Derived>>
       const_iterator_type;
 
   // Stl-style iterators are supported only for vectors.

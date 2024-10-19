@@ -114,9 +114,9 @@ EIGEN_DEVICE_FUNC inline constexpr const CwiseBinaryGreaterOrEqualReturnType<Oth
  * \sa class CwiseBinaryOp, max()
  */
 template <int NaNPropagation = PropagateFast, typename OtherDerived>
-EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr const
-    CwiseBinaryOp<internal::scalar_min_op<Scalar, Scalar, NaNPropagation>, const Derived, const OtherDerived>
-    cwiseMin(const EIGEN_CURRENT_STORAGE_BASE_CLASS<OtherDerived>& other) const {
+EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr const CwiseBinaryOp<
+    internal::scalar_min_op<Scalar, Scalar, NaNPropagation>, const Derived, const OtherDerived>
+cwiseMin(const EIGEN_CURRENT_STORAGE_BASE_CLASS<OtherDerived>& other) const {
   return CwiseBinaryOp<internal::scalar_min_op<Scalar, Scalar, NaNPropagation>, const Derived, const OtherDerived>(
       derived(), other.derived());
 }
@@ -126,9 +126,9 @@ EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr const
  * \sa class CwiseBinaryOp, min()
  */
 template <int NaNPropagation = PropagateFast>
-EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr const
-    CwiseBinaryOp<internal::scalar_min_op<Scalar, Scalar, NaNPropagation>, const Derived, const ConstantReturnType>
-    cwiseMin(const Scalar& other) const {
+EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr const CwiseBinaryOp<
+    internal::scalar_min_op<Scalar, Scalar, NaNPropagation>, const Derived, const ConstantReturnType>
+cwiseMin(const Scalar& other) const {
   return cwiseMin<NaNPropagation>(Derived::Constant(rows(), cols(), other));
 }
 
@@ -140,9 +140,9 @@ EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr const
  * \sa class CwiseBinaryOp, min()
  */
 template <int NaNPropagation = PropagateFast, typename OtherDerived>
-EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr const
-    CwiseBinaryOp<internal::scalar_max_op<Scalar, Scalar, NaNPropagation>, const Derived, const OtherDerived>
-    cwiseMax(const EIGEN_CURRENT_STORAGE_BASE_CLASS<OtherDerived>& other) const {
+EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr const CwiseBinaryOp<
+    internal::scalar_max_op<Scalar, Scalar, NaNPropagation>, const Derived, const OtherDerived>
+cwiseMax(const EIGEN_CURRENT_STORAGE_BASE_CLASS<OtherDerived>& other) const {
   return CwiseBinaryOp<internal::scalar_max_op<Scalar, Scalar, NaNPropagation>, const Derived, const OtherDerived>(
       derived(), other.derived());
 }
@@ -152,9 +152,9 @@ EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr const
  * \sa class CwiseBinaryOp, min()
  */
 template <int NaNPropagation = PropagateFast>
-EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr const
-    CwiseBinaryOp<internal::scalar_max_op<Scalar, Scalar, NaNPropagation>, const Derived, const ConstantReturnType>
-    cwiseMax(const Scalar& other) const {
+EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr const CwiseBinaryOp<
+    internal::scalar_max_op<Scalar, Scalar, NaNPropagation>, const Derived, const ConstantReturnType>
+cwiseMax(const Scalar& other) const {
   return cwiseMax<NaNPropagation>(Derived::Constant(rows(), cols(), other));
 }
 
@@ -166,9 +166,9 @@ EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr const
  * \sa class CwiseBinaryOp, cwiseProduct(), cwiseInverse()
  */
 template <typename OtherDerived>
-EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr const
-    CwiseBinaryOp<internal::scalar_quotient_op<Scalar>, const Derived, const OtherDerived>
-    cwiseQuotient(const EIGEN_CURRENT_STORAGE_BASE_CLASS<OtherDerived>& other) const {
+EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr const CwiseBinaryOp<internal::scalar_quotient_op<Scalar>, const Derived,
+                                                                    const OtherDerived>
+cwiseQuotient(const EIGEN_CURRENT_STORAGE_BASE_CLASS<OtherDerived>& other) const {
   return CwiseBinaryOp<internal::scalar_quotient_op<Scalar>, const Derived, const OtherDerived>(derived(),
                                                                                                 other.derived());
 }
@@ -228,7 +228,8 @@ EIGEN_DEVICE_FUNC inline constexpr const CwiseScalarLessOrEqualReturnType cwiseL
 }
 
 /** \returns an expression of the coefficient-wise >= operator of \c *this and a scalar \a s */
-EIGEN_DEVICE_FUNC inline constexpr const CwiseScalarGreaterOrEqualReturnType cwiseGreaterOrEqual(const Scalar& s) const {
+EIGEN_DEVICE_FUNC inline constexpr const CwiseScalarGreaterOrEqualReturnType cwiseGreaterOrEqual(
+    const Scalar& s) const {
   return CwiseScalarGreaterOrEqualReturnType(derived(), Derived::Constant(rows(), cols(), s));
 }
 
@@ -258,8 +259,8 @@ EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr const CwiseBinaryTypedEqualRetur
 }
 
 template <typename OtherDerived>
-EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr const CwiseBinaryTypedNotEqualReturnType<OtherDerived> cwiseTypedNotEqual(
-    const EIGEN_CURRENT_STORAGE_BASE_CLASS<OtherDerived>& other) const {
+EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr const CwiseBinaryTypedNotEqualReturnType<OtherDerived>
+cwiseTypedNotEqual(const EIGEN_CURRENT_STORAGE_BASE_CLASS<OtherDerived>& other) const {
   return CwiseBinaryTypedNotEqualReturnType<OtherDerived>(derived(), other.derived());
 }
 
@@ -276,8 +277,8 @@ EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr const CwiseBinaryTypedGreaterRet
 }
 
 template <typename OtherDerived>
-EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr const CwiseBinaryTypedLessOrEqualReturnType<OtherDerived> cwiseTypedLessOrEqual(
-    const EIGEN_CURRENT_STORAGE_BASE_CLASS<OtherDerived>& other) const {
+EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr const CwiseBinaryTypedLessOrEqualReturnType<OtherDerived>
+cwiseTypedLessOrEqual(const EIGEN_CURRENT_STORAGE_BASE_CLASS<OtherDerived>& other) const {
   return CwiseBinaryTypedLessOrEqualReturnType<OtherDerived>(derived(), other.derived());
 }
 
@@ -303,29 +304,32 @@ using CwiseScalarTypedGreaterOrEqualReturnType =
     CwiseBinaryOp<internal::scalar_cmp_op<Scalar, Scalar, internal::cmp_GE, true>, const Derived,
                   const ConstantReturnType>;
 
-EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr const CwiseScalarTypedEqualReturnType cwiseTypedEqual(const Scalar& s) const {
+EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr const CwiseScalarTypedEqualReturnType cwiseTypedEqual(
+    const Scalar& s) const {
   return CwiseScalarTypedEqualReturnType(derived(), ConstantReturnType(rows(), cols(), s));
 }
 
-EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr const CwiseScalarTypedNotEqualReturnType
-cwiseTypedNotEqual(const Scalar& s) const {
+EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr const CwiseScalarTypedNotEqualReturnType cwiseTypedNotEqual(
+    const Scalar& s) const {
   return CwiseScalarTypedNotEqualReturnType(derived(), ConstantReturnType(rows(), cols(), s));
 }
 
-EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr const CwiseScalarTypedLessReturnType cwiseTypedLess(const Scalar& s) const {
+EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr const CwiseScalarTypedLessReturnType cwiseTypedLess(
+    const Scalar& s) const {
   return CwiseScalarTypedLessReturnType(derived(), ConstantReturnType(rows(), cols(), s));
 }
 
-EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr const CwiseScalarTypedGreaterReturnType cwiseTypedGreater(const Scalar& s) const {
+EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr const CwiseScalarTypedGreaterReturnType cwiseTypedGreater(
+    const Scalar& s) const {
   return CwiseScalarTypedGreaterReturnType(derived(), ConstantReturnType(rows(), cols(), s));
 }
 
-EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr const CwiseScalarTypedLessOrEqualReturnType
-cwiseTypedLessOrEqual(const Scalar& s) const {
+EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr const CwiseScalarTypedLessOrEqualReturnType cwiseTypedLessOrEqual(
+    const Scalar& s) const {
   return CwiseScalarTypedLessOrEqualReturnType(derived(), ConstantReturnType(rows(), cols(), s));
 }
 
-EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr const CwiseScalarTypedGreaterOrEqualReturnType
-cwiseTypedGreaterOrEqual(const Scalar& s) const {
+EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE constexpr const CwiseScalarTypedGreaterOrEqualReturnType cwiseTypedGreaterOrEqual(
+    const Scalar& s) const {
   return CwiseScalarTypedGreaterOrEqualReturnType(derived(), ConstantReturnType(rows(), cols(), s));
 }

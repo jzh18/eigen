@@ -372,7 +372,8 @@ struct TensorEvaluator<const TensorVolumePatchOp<Planes, Rows, Cols, ArgType>, D
 
 #ifdef EIGEN_USE_THREADS
   template <typename EvalSubExprsCallback>
-  EIGEN_STRONG_INLINE constexpr void evalSubExprsIfNeededAsync(EvaluatorPointerType /*data*/, EvalSubExprsCallback done) {
+  EIGEN_STRONG_INLINE constexpr void evalSubExprsIfNeededAsync(EvaluatorPointerType /*data*/,
+                                                               EvalSubExprsCallback done) {
     m_impl.evalSubExprsIfNeededAsync(nullptr, [done](bool) { done(true); });
   }
 #endif  // EIGEN_USE_THREADS

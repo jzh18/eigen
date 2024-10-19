@@ -796,11 +796,9 @@ class gebp_traits<std::complex<RealScalar>, std::complex<RealScalar>, ConjLhs_, 
 
   template <typename LhsPacketType, typename RhsPacketType, typename ResPacketType, typename TmpType,
             typename LaneIdType>
-  EIGEN_STRONG_INLINE constexpr std::enable_if_t<!is_same<RhsPacketType, RhsPacketx4>::value> madd(const LhsPacketType& a,
-                                                                                         const RhsPacketType& b,
-                                                                                         DoublePacket<ResPacketType>& c,
-                                                                                         TmpType& /*tmp*/,
-                                                                                         const LaneIdType&) const {
+  EIGEN_STRONG_INLINE constexpr std::enable_if_t<!is_same<RhsPacketType, RhsPacketx4>::value> madd(
+      const LhsPacketType& a, const RhsPacketType& b, DoublePacket<ResPacketType>& c, TmpType& /*tmp*/,
+      const LaneIdType&) const {
     c.first = pmadd(a, b.first, c.first);
     c.second = pmadd(a, b.second, c.second);
   }

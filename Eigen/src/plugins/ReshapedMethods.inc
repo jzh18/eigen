@@ -115,7 +115,7 @@ EIGEN_DEVICE_FUNC inline constexpr Reshaped<EIGEN_RESHAPED_METHOD_CONST Derived,
 
 template <int Order>
 EIGEN_DEVICE_FUNC inline constexpr Reshaped<EIGEN_RESHAPED_METHOD_CONST Derived, SizeAtCompileTime, 1,
-                                  internal::get_compiletime_reshape_order(Flags, Order)>
+                                            internal::get_compiletime_reshape_order(Flags, Order)>
 reshaped() EIGEN_RESHAPED_METHOD_CONST {
   EIGEN_STATIC_ASSERT(Order == RowMajor || Order == ColMajor || Order == AutoOrder, INVALID_TEMPLATE_PARAMETER);
   return Reshaped<EIGEN_RESHAPED_METHOD_CONST Derived, SizeAtCompileTime, 1,
